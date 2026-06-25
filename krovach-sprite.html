@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Krovach Sprite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0d0d0f;color:#d4ccc0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+button,select,input{font-family:inherit}
+button{cursor:pointer}
+
+/* ── Header ── */
+#hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;height:50px}
+#hdr-title{font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(196,154,104,.7);flex:1}
+#hdr-profile{font-size:12px;color:#d4ccc0;font-weight:500}
+#preset{background:#1c1c1e;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#d4ccc0;font-size:11px;padding:5px 7px;cursor:pointer}
+#btnExport{background:rgba(196,154,104,.15);color:#c49a68;border:1px solid rgba(196,154,104,.3);border-radius:7px;font-size:11px;font-weight:600;padding:5px 12px}
+#btnHelp{background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:rgba(212,204,192,.5);font-size:13px;font-weight:600;padding:5px 10px;line-height:1}
+
+/* ── Main stage ── */
+#main{flex:1;position:relative;overflow:hidden}
+
+/* ── Preview ── */
+#pane-preview{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:auto}
+#matrixGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;border-radius:14px;overflow:hidden;background:#0d0d0f;width:100%;max-width:460px}
+.mcell{position:relative;background:#161618;cursor:pointer;overflow:hidden;aspect-ratio:1}
+.mcell canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.mcell.is-center{cursor:default}
+.mcell.selected{outline:2px solid #c49a68;outline-offset:-2px;z-index:1}
+.mcell::after{content:attr(data-label);position:absolute;bottom:0;left:0;right:0;font-size:8px;color:rgba(212,204,192,.45);text-align:center;padding:2px 4px;background:rgba(0,0,0,.5);pointer-events:none;white-space:nowrap;overflow:hidden}
+.mcell.is-center::after{color:#8aaa60}
+#matrixMsg{font-size:11px;color:rgba(212,204,192,.35);text-align:center;margin-top:10px;max-width:460px;width:100%}
+#matrixMsg.hot{color:#c49a68}
+#matrixUploadRow{display:none;gap:8px;margin-top:8px;max-width:460px;width:100%}
+#matrixUploadRow.show{display:flex}
+#btnUploadNeighbor{flex:1;padding:9px;border-radius:9px;background:#1c1c1e;border:1px solid rgba(255,255,255,.08);color:#8aaa60;font-size:12px}
+#btnClearNeighbor{padding:9px 12px;border-radius:9px;background:#2a1010;border:1px solid rgba(90,32,32,.4);color:#c05050;font-size:12px;display:none}
+
+/* ── Edge tabs ── */
+.edge-tab{position:absolute;top:50%;transform:translateY(-50%);width:22px;height:68px;display:flex;align-items:center;justify-content:center;z-index:30;cursor:pointer;border:1px solid rgba(196,154,104,.15);background:rgba(13,13,15,.7);color:rgba(196,154,104,.5);font-size:12px;transition:background .15s,color .15s;user-select:none}
+.edge-tab:hover{background:rgba(196,154,104,.12);color:#c49a68}
+#tab-gen{left:0;border-radius:0 8px 8px 0;border-left:none}
+#tab-edit{right:0;border-radius:8px 0 0 8px;border-right:none}
+
+/* ── Side panels ── */
+.side-panel{position:absolute;top:0;bottom:0;width:min(310px,88vw);background:rgba(15,15,18,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:20;overflow-y:auto;overflow-x:hidden;transition:transform .22s cubic-bezier(.4,0,.2,1)}
+.panel-inner{padding:14px;padding-bottom:80px}
+#pane-gen{left:0;border-right:1px solid rgba(255,255,255,.07);transform:translateX(-100%)}
+#pane-gen.open{transform:translateX(0)}
+#pane-edit{right:0;border-left:1px solid rgba(255,255,255,.07);transform:translateX(100%)}
+#pane-edit.open{transform:translateX(0)}
+
+/* ── Cards ── */
+.card{background:rgba(255,255,255,.04);border-radius:11px;padding:12px 13px;margin-bottom:9px}
+.card-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(212,204,192,.3);margin-bottom:10px}
+
+/* ── Profile chips ── */
+#profileChips{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+#profileChips::-webkit-scrollbar{display:none}
+.pchip{flex-shrink:0;padding:5px 11px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(212,204,192,.5);font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap}
+.pchip.on{background:rgba(196,154,104,.15);border-color:rgba(196,154,104,.35);color:#c49a68}
+
+/* ── Tint ── */
+#tintRow{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.05)}
+#tintSwatch{position:relative;flex-shrink:0;display:inline-block;cursor:pointer}
+#tintBox{width:28px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.1)}
+#tintPick{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+#tintStatus{font-size:11px;color:rgba(212,204,192,.35);flex:1}
+#btnClearTint{background:transparent;border:none;color:rgba(192,80,80,.7);font-size:11px;padding:2px 0;display:none}
+
+/* ── Sliders ── */
+.sl-row{margin-bottom:11px}
+.sl-row:last-child{margin-bottom:0}
+.sl-meta{display:flex;justify-content:space-between;margin-bottom:4px}
+.sl-name{font-size:12px;color:rgba(212,204,192,.8)}
+.sl-val{font-size:12px;color:rgba(212,204,192,.4);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:#c49a68;cursor:pointer;height:3px}
+
+/* ── Segmented controls ── */
+.seg{display:flex;background:rgba(0,0,0,.3);border-radius:8px;padding:2px;gap:2px}
+.seg button{flex:1;padding:6px 2px;border:none;border-radius:6px;background:transparent;font-size:10px;font-weight:500;color:rgba(212,204,192,.4);cursor:pointer}
+.seg button.on{background:rgba(255,255,255,.08);color:#c49a68}
+.pane-select{width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#d4ccc0;font-size:12px;padding:8px 10px;cursor:pointer}
+
+/* ── Bake footer ── */
+#bake-footer{position:sticky;bottom:0;background:rgba(15,15,18,.97);padding:10px 14px;border-top:1px solid rgba(255,255,255,.06)}
+#btnBake{width:100%;padding:12px;border:none;border-radius:10px;background:#c49a68;color:#0d0d0f;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+
+/* ── Canvas (edit) ── */
+#canvasCard{background:rgba(0,0,0,.3);border-radius:11px;display:flex;justify-content:center;align-items:center;padding:12px;margin-bottom:9px}
+#cv{display:block;image-rendering:pixelated;touch-action:none;cursor:crosshair;border-radius:3px}
+#toolRow{display:flex;background:rgba(0,0,0,.3);border-radius:8px;padding:2px;gap:2px;margin-bottom:8px}
+#toolRow button{flex:1;padding:7px 0;border:none;border-radius:6px;background:transparent;font-size:11px;font-weight:500;color:rgba(212,204,192,.4);cursor:pointer}
+#toolRow button.on{background:rgba(255,255,255,.08);color:#c49a68}
+#colorRow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#swatchLabel{position:relative;flex-shrink:0;display:inline-block;cursor:pointer}
+#swatch{width:42px;height:42px;border-radius:8px;border:1px solid rgba(255,255,255,.1)}
+#colorPick{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+#btnTransp{flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(212,204,192,.5);font-size:11px}
+#btnTransp.on{border-color:rgba(196,154,104,.35);color:#c49a68;background:rgba(196,154,104,.08)}
+.act-row{display:flex;gap:5px}
+.act-btn{padding:8px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:#d4ccc0;font-size:14px;cursor:pointer}
+.act-btn:disabled{color:rgba(212,204,192,.2);cursor:default}
+.act-btn.on{color:#c49a68}
+#btnClear{background:rgba(42,16,16,.8);border-color:rgba(90,32,32,.4);color:#c05050}
+#btnPalette{width:100%;padding:8px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(212,204,192,.4);font-size:11px;margin-bottom:6px}
+#palette{display:none;grid-template-columns:repeat(8,1fr);gap:3px}
+#palette.show{display:grid}
+.sw{aspect-ratio:1;cursor:pointer;border-radius:3px;border:2px solid transparent}
+.sw.on{border-color:#c49a68}
+
+/* ── Help panel (desktop: centred modal) ── */
+#help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:800;display:none;align-items:center;justify-content:center;padding:20px}
+#help-overlay.open{display:flex}
+#help-modal{background:#161618;border-radius:18px;width:100%;max-width:540px;max-height:80vh;overflow-y:auto;border:1px solid rgba(255,255,255,.08);padding:24px}
+#help-modal h2{font-size:16px;font-weight:700;color:#d4ccc0;margin-bottom:16px}
+details.hs{border-bottom:1px solid rgba(255,255,255,.06);padding:10px 0}
+details.hs:last-of-type{border-bottom:none}
+details.hs summary{font-size:13px;font-weight:600;color:#c49a68;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none}
+details.hs summary::-webkit-details-marker{display:none}
+details.hs summary::after{content:"›";font-size:16px;color:rgba(212,204,192,.4);transition:transform .15s}
+details.hs[open] summary::after{transform:rotate(90deg)}
+details.hs .hs-body{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+details.hs .hs-body p{font-size:12px;line-height:1.6;color:rgba(212,204,192,.7)}
+details.hs .hs-body strong{color:#d4ccc0}
+#btnCloseHelp{margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;background:rgba(196,154,104,.15);color:#c49a68;font-size:13px;font-weight:600;cursor:pointer}
+
+/* ── Mobile help panel ── */
+#pane-help{position:absolute;top:0;bottom:0;width:100%;background:#0d0d0f;z-index:20;overflow-y:auto;display:none}
+#pane-help.mob-active{display:block}
+#pane-help .panel-inner{padding:16px;padding-bottom:24px}
+#pane-help h2{font-size:16px;font-weight:700;color:#d4ccc0;margin-bottom:14px}
+#pane-help details.hs{border-bottom:1px solid rgba(255,255,255,.06);padding:10px 0}
+#btnRestartTutorial{width:100%;padding:11px;border:1px solid rgba(196,154,104,.3);border-radius:10px;background:rgba(196,154,104,.08);color:#c49a68;font-size:13px;font-weight:600;cursor:pointer;margin-top:14px}
+
+/* ── Mobile dots ── */
+#dots{display:none;justify-content:center;align-items:center;gap:4px;height:48px;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;background:#111114}
+.dot-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:none;cursor:pointer;padding:4px 10px}
+.dot-icon{font-size:16px;color:rgba(212,204,192,.3);transition:color .15s}
+.dot-label{font-size:9px;font-weight:500;color:rgba(212,204,192,.3);letter-spacing:.04em;transition:color .15s}
+.dot-btn.active .dot-icon,.dot-btn.active .dot-label{color:#c49a68}
+
+/* ── Welcome modal ── */
+#welcome{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px}
+#welcome-card{background:#1c1c1e;border-radius:20px;max-width:300px;width:100%;padding:28px 24px;text-align:center;border:1px solid rgba(196,154,104,.2)}
+#welcome-card .wc-icon{font-size:36px;margin-bottom:12px}
+#welcome-card h2{font-size:18px;font-weight:700;color:#d4ccc0;margin-bottom:8px}
+#welcome-card p{font-size:13px;line-height:1.6;color:rgba(212,204,192,.6);margin-bottom:20px}
+.wc-btns{display:flex;flex-direction:column;gap:8px}
+#btnStartTour{padding:13px;border:none;border-radius:11px;background:#c49a68;color:#0d0d0f;font-size:14px;font-weight:700;cursor:pointer}
+#btnSkipTour{padding:10px;border:none;border-radius:11px;background:transparent;color:rgba(212,204,192,.4);font-size:13px;cursor:pointer}
+
+/* ── Tutorial overlay ── */
+#tut-scrim{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:5000;display:none;pointer-events:none}
+#tut-spot{position:fixed;z-index:5001;border-radius:10px;box-shadow:0 0 0 max(100vw,100vh) rgba(0,0,0,.78);pointer-events:none;transition:all .25s cubic-bezier(.4,0,.2,1);display:none}
+#tut-card{position:fixed;z-index:5002;background:#1c1c1e;border:1px solid rgba(196,154,104,.3);border-radius:16px;padding:18px 18px 14px;width:min(260px,calc(100vw-40px));box-shadow:0 16px 48px rgba(0,0,0,.6);display:none}
+#tut-card h3{font-size:14px;font-weight:700;color:#d4ccc0;margin-bottom:6px}
+#tut-card p{font-size:12px;line-height:1.6;color:rgba(212,204,192,.65);margin-bottom:14px}
+.tut-nav{display:flex;align-items:center;gap:8px}
+#tut-progress{font-size:11px;color:rgba(212,204,192,.35);flex:1}
+#tut-prev{padding:7px 12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:transparent;color:rgba(212,204,192,.6);font-size:12px;cursor:pointer}
+#tut-next{padding:7px 14px;border:none;border-radius:8px;background:#c49a68;color:#0d0d0f;font-size:12px;font-weight:700;cursor:pointer}
+#tut-skip{position:fixed;bottom:20px;right:20px;z-index:5003;padding:8px 14px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:rgba(13,13,15,.8);color:rgba(212,204,192,.4);font-size:11px;cursor:pointer;display:none}
+
+/* ── Mobile overrides ── */
+@media(max-width:599px){
+  #main{overflow:visible}
+  #pane-preview,#pane-gen,#pane-edit{position:static!important;transform:none!important;width:100%!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:transparent!important;border:none!important;display:none}
+  #pane-preview.mob-active,#pane-gen.mob-active,#pane-edit.mob-active{display:flex;flex-direction:column;flex:1}
+  #bake-footer{position:fixed;bottom:48px;left:0;right:0;background:rgba(15,15,18,.97)}
+  .edge-tab{display:none!important}
+  #btnHelp{display:none}
+  #dots{display:flex}
+  #matrixGrid{max-width:100%}
+  #help-overlay{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="hdr">
+  <span id="hdr-title">KROVACH SPRITE</span>
+  <span id="hdr-profile">grass</span>
+  <select id="preset"><option value="16,16">16×16</option><option value="32,32" selected>32×32</option><option value="28,48">28×48</option><option value="48,48">48×48</option></select>
+  <button id="btnHelp">?</button>
+  <button id="btnExport">Export</button>
+</div>
+
+<div id="main">
+
+  <!-- Preview (always centre on desktop) -->
+  <div id="pane-preview" class="mob-active">
+    <div id="matrixGrid">
+      <div class="mcell" data-key="tl" data-label="top-left · grass"></div>
+      <div class="mcell" data-key="t"  data-label="top · grass"></div>
+      <div class="mcell" data-key="tr" data-label="top-right · grass"></div>
+      <div class="mcell" data-key="l"  data-label="left · grass"></div>
+      <div class="mcell is-center" data-key="c" data-label="center"></div>
+      <div class="mcell" data-key="r"  data-label="right · grass"></div>
+      <div class="mcell" data-key="bl" data-label="btm-left · grass"></div>
+      <div class="mcell" data-key="b"  data-label="bottom · grass"></div>
+      <div class="mcell" data-key="br" data-label="btm-right · grass"></div>
+    </div>
+    <div id="matrixMsg">Tap a surrounding tile to select it, then assign a texture or upload a PNG</div>
+    <div id="matrixUploadRow">
+      <button id="btnUploadNeighbor">↑ Upload PNG</button>
+      <button id="btnClearNeighbor">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- Settings (desktop: slides from left) -->
+  <div id="pane-gen" class="side-panel">
+    <div class="panel-inner">
+      <div class="card">
+        <div class="card-label">Texture</div>
+        <div id="profileChips"></div>
+        <div id="tintRow">
+          <label id="tintSwatch"><div id="tintBox" style="background:#1c1c1e"></div><input type="color" id="tintPick" value="#22c55e"></label>
+          <span id="tintStatus">Colour tint</span>
+          <button id="btnClearTint">Clear</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Texture Style</div>
+        <div class="seg" id="styleRow">
+          <button data-s="grainy">Grainy</button><button data-s="organic" class="on">Organic</button><button data-s="painted">Smooth</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Parameters</div>
+        <div class="sl-row"><div class="sl-meta"><span class="sl-name">Density</span><span class="sl-val" id="densityVal">50</span></div><input type="range" id="slideDensity" min="5" max="95" value="50"></div>
+        <div class="sl-row"><div class="sl-meta"><span class="sl-name">Contrast</span><span class="sl-val" id="contrastVal">20</span></div><input type="range" id="slideContrast" min="0" max="100" value="20"></div>
+        <div class="sl-row"><div class="sl-meta"><span class="sl-name">Patch size</span><span class="sl-val" id="freqVal">3</span></div><input type="range" id="slideFreq" min="1" max="8" value="3"></div>
+        <div class="sl-row"><div class="sl-meta"><span class="sl-name">Scale size</span><span class="sl-val" id="shingleRowsVal">4</span></div><input type="range" id="slideShingleRows" min="2" max="7" value="4"></div>
+        <div class="sl-row"><div class="sl-meta"><span class="sl-name">Scale scatter</span><span class="sl-val" id="shingleScatterVal">30</span></div><input type="range" id="slideShingleScatter" min="0" max="100" value="30"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Edge Style</div>
+        <div class="seg" id="blendThemeRow">
+          <button data-bt="gradient" class="on">Gradient</button><button data-bt="rocky">Rocky</button><button data-bt="scalloped">Scalloped</button><button data-bt="curb">Curb</button><button data-bt="organic">Organic</button>
+        </div>
+        <div class="sl-row" style="margin-top:10px"><div class="sl-meta"><span class="sl-name">Edge depth</span><span class="sl-val" id="blendVal">5</span></div><input type="range" id="slideBlend" min="0" max="12" value="5"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Tile Context</div>
+        <select class="pane-select" id="selectContext">
+          <option value="standalone">Standalone</option>
+          <option value="contained">Contained forms</option>
+          <option value="path_edge">Path / border edge</option>
+          <option value="coastline">Coastline</option>
+          <option value="sprite_form">Sprite shape (oval)</option>
+        </select>
+      </div>
+    </div>
+    <div id="bake-footer"><button id="btnBake">⚡  Bake</button></div>
+  </div>
+
+  <!-- Edit (desktop: slides from right) -->
+  <div id="pane-edit" class="side-panel">
+    <div class="panel-inner">
+      <div class="card" id="canvasCard"><canvas id="cv"></canvas></div>
+      <div id="toolRow">
+        <button class="on" data-t="pencil">✏ Pencil</button><button data-t="eraser">◻ Erase</button><button data-t="fill">▣ Fill</button><button data-t="eyedropper">⌖ Pick</button>
+      </div>
+      <div id="colorRow">
+        <label id="swatchLabel"><div id="swatch"></div><input type="color" id="colorPick" value="#7d4e30"></label>
+        <button id="btnTransp">Transparent</button>
+        <div class="act-row">
+          <button id="btnUndo" class="act-btn">↩</button><button id="btnRedo" class="act-btn">↪</button><button id="btnGrid" class="act-btn on">⊞</button><button id="btnClear" class="act-btn">✕</button>
+        </div>
+      </div>
+      <button id="btnPalette">▾ Palette</button>
+      <div id="palette"></div>
+    </div>
+  </div>
+
+  <!-- Mobile help panel -->
+  <div id="pane-help">
+    <div class="panel-inner">
+      <h2>Guide</h2>
+      <details class="hs" open><summary>Navigation</summary><div class="hs-body">
+        <p><strong>Desktop:</strong> Hover the <strong>⚙</strong> tab at the left edge for Settings, <strong>✏</strong> at the right for Edit. The preview is always visible behind.</p>
+        <p><strong>Mobile:</strong> Swipe left or right between Settings, Preview, and Edit. Or tap the icons at the bottom.</p>
+      </div></details>
+      <details class="hs"><summary>Choosing a Texture</summary><div class="hs-body">
+        <p>Scroll the chips at the top of Settings to choose your texture type — grass, dirt, stone, cobblestone, wood, mud, ores, sand, snow, water, shale, mountain, or path.</p>
+        <p>Tapping a chip auto-bakes with that texture's default settings.</p>
+      </div></details>
+      <details class="hs"><summary>Colour Tint</summary><div class="hs-body">
+        <p>The tint swatch in Settings lets you override the texture's colour palette with any hue you pick. Useful for dead grass (yellowish-green tint), rusty ore, or autumn leaves.</p>
+      </div></details>
+      <details class="hs"><summary>Parameters</summary><div class="hs-body">
+        <p><strong>Density</strong> — shifts which end of the palette is sampled. Higher = lighter overall tone.</p>
+        <p><strong>Contrast</strong> — per-pixel brightness noise. Higher = more grain.</p>
+        <p><strong>Patch size</strong> — noise scale. Small = fine grain, large = wide colour blobs.</p>
+        <p><strong>Scale size</strong> — number of overlapping scale rows in the Mountain texture.</p>
+        <p><strong>Scale scatter</strong> — 0 = perfect rows, 100 = fully organic placement.</p>
+      </div></details>
+      <details class="hs"><summary>Edge Styles</summary><div class="hs-body">
+        <p><strong>Gradient</strong> — smooth colour blend toward the neighbour texture.</p>
+        <p><strong>Rocky</strong> — organic noise blobs of neighbour colour at the border.</p>
+        <p><strong>Scalloped</strong> — semicircular arcs of neighbour texture cut into the tile.</p>
+        <p><strong>Curb</strong> — a fixed grey brick border at the edge.</p>
+        <p><strong>Organic</strong> — the neighbour texture intrudes with wiggly finger-like shapes. No blending — a hard clean cut.</p>
+        <p><strong>Edge Depth</strong> — how far from the tile edge the effect reaches.</p>
+      </div></details>
+      <details class="hs"><summary>Tile Context</summary><div class="hs-body">
+        <p><strong>Standalone</strong> — plain tile with no edge shaping.</p>
+        <p><strong>Contained forms</strong> — shapes cut off by the tile edge are removed. Empty areas fill with organic edge texture. Best with Mountain + Organic edge.</p>
+        <p><strong>Path / border edge</strong> — darkens the tile edge to suggest a path border.</p>
+        <p><strong>Coastline</strong> — randomly darkens edge pixels to suggest a shoreline.</p>
+        <p><strong>Sprite shape (oval)</strong> — masks tile to an oval, transparent outside.</p>
+      </div></details>
+      <details class="hs"><summary>Preview & Neighbours</summary><div class="hs-body">
+        <p>The 3×3 matrix shows your tile in context. The centre is your tile; surrounding tiles show what it borders.</p>
+        <p>Tap any surrounding tile to select it, then pick a texture in Settings to change what that neighbour is. The centre tile updates its edges live.</p>
+        <p>You can also tap <strong>Upload PNG</strong> to use your own tile as a neighbour.</p>
+      </div></details>
+      <details class="hs"><summary>Edit Tools</summary><div class="hs-body">
+        <p><strong>Pencil</strong> — draw pixels. <strong>Erase</strong> — erase to transparent. <strong>Fill</strong> — flood-fill a colour region. <strong>Pick</strong> — sample a colour.</p>
+        <p>Tap the swatch to pick a colour, or expand the Palette for 64 preset colours.</p>
+        <p>Undo and redo support up to 50 steps. The grid toggle shows or hides the pixel grid.</p>
+      </div></details>
+      <details class="hs"><summary>Bake & Export</summary><div class="hs-body">
+        <p><strong>Bake</strong> generates a fresh tile with the current settings and a new random seed. Every bake is different.</p>
+        <p><strong>Export</strong> downloads your tile as a PNG at native resolution.</p>
+        <p>The tile size selector in the header lets you switch between 16×16, 32×32, 28×48, and 48×48.</p>
+      </div></details>
+      <button id="btnRestartTutorial">↺ Replay tutorial</button>
+    </div>
+  </div>
+
+  <!-- Desktop edge tabs -->
+  <div class="edge-tab" id="tab-gen">⚙</div>
+  <div class="edge-tab" id="tab-edit">✏</div>
+</div>
+
+<!-- Mobile bottom nav -->
+<div id="dots">
+  <button class="dot-btn" data-mob="pane-gen"><span class="dot-icon">⚙</span><span class="dot-label">Settings</span></button>
+  <button class="dot-btn active" data-mob="pane-preview"><span class="dot-icon">⊞</span><span class="dot-label">Preview</span></button>
+  <button class="dot-btn" data-mob="pane-edit"><span class="dot-icon">✏</span><span class="dot-label">Edit</span></button>
+  <button class="dot-btn" data-mob="pane-help"><span class="dot-icon">?</span><span class="dot-label">Guide</span></button>
+</div>
+
+<!-- Desktop help modal -->
+<div id="help-overlay">
+  <div id="help-modal">
+    <h2>Guide</h2>
+    <details class="hs" open><summary>Navigation</summary><div class="hs-body">
+      <p><strong>Desktop:</strong> Hover ⚙ on the left edge for Settings, ✏ on the right for Edit. The preview matrix is always visible behind.</p>
+      <p><strong>Mobile:</strong> Swipe left/right between Settings, Preview, and Edit, or tap the icons at the bottom.</p>
+    </div></details>
+    <details class="hs"><summary>Choosing a Texture</summary><div class="hs-body">
+      <p>Scroll the chips at the top of Settings to choose your texture type. Tapping a chip auto-bakes with that texture's default settings.</p>
+    </div></details>
+    <details class="hs"><summary>Colour Tint</summary><div class="hs-body">
+      <p>The tint swatch overrides the texture palette with any hue — useful for dead grass, rusty ore, frozen variants, and so on.</p>
+    </div></details>
+    <details class="hs"><summary>Parameters</summary><div class="hs-body">
+      <p><strong>Density</strong> — overall tone bias. Higher = lighter. <strong>Contrast</strong> — per-pixel grain intensity. <strong>Patch size</strong> — noise zoom level.</p>
+      <p><strong>Scale size &amp; scatter</strong> — control the Mountain texture's overlapping scale shapes.</p>
+    </div></details>
+    <details class="hs"><summary>Edge Styles</summary><div class="hs-body">
+      <p><strong>Gradient</strong> smooth blend · <strong>Rocky</strong> noise blobs · <strong>Scalloped</strong> arcs · <strong>Curb</strong> brick border · <strong>Organic</strong> hard wiggly cut</p>
+      <p><strong>Edge Depth</strong> controls how far from the tile edge the effect reaches.</p>
+    </div></details>
+    <details class="hs"><summary>Tile Context</summary><div class="hs-body">
+      <p><strong>Standalone</strong> · <strong>Contained forms</strong> (removes cut-off shapes, fills gaps with organic edge texture) · <strong>Path edge</strong> · <strong>Coastline</strong> · <strong>Sprite shape</strong></p>
+    </div></details>
+    <details class="hs"><summary>Preview &amp; Neighbours</summary><div class="hs-body">
+      <p>Tap any of the 8 surrounding tiles in the matrix to select it. Then choose a texture in Settings to change what that border is — the centre tile updates live. Upload PNG lets you use your own tile as a neighbour.</p>
+    </div></details>
+    <details class="hs"><summary>Edit Tools</summary><div class="hs-body">
+      <p>Pencil · Erase · Fill · Pick — plus swatch, 64-colour palette, undo/redo (50 steps), and grid toggle.</p>
+    </div></details>
+    <details class="hs"><summary>Bake &amp; Export</summary><div class="hs-body">
+      <p>Bake generates a new tile with the current settings and a fresh random seed. Export downloads it as a PNG at native resolution.</p>
+    </div></details>
+    <button id="btnCloseHelp">Got it</button>
+  </div>
+</div>
+
+<!-- Welcome modal -->
+<div id="welcome">
+  <div id="welcome-card">
+    <div class="wc-icon">🎮</div>
+    <h2>Krovach Sprite</h2>
+    <p>Procedural pixel art tile generator for your RPG. Would you like a quick tour?</p>
+    <div class="wc-btns">
+      <button id="btnStartTour">Take the tour</button>
+      <button id="btnSkipTour">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tutorial overlay -->
+<div id="tut-scrim"></div>
+<div id="tut-spot"></div>
+<div id="tut-card">
+  <h3 id="tut-title"></h3>
+  <p id="tut-text"></p>
+  <div class="tut-nav">
+    <span id="tut-progress"></span>
+    <button id="tut-prev">← Back</button>
+    <button id="tut-next">Next →</button>
+  </div>
+</div>
+<button id="tut-skip">Skip tour</button>
+
+<script>
+const PROFILES={grass:{palette:["#1a2d14","#243d1e","#2d4a24","#3a5c2e","#486838","#5a7845"],dens:50,con:15,freq:3,ctx:"standalone",style:"organic"},dirt:{palette:["#1a0d07","#2d1a0a","#3d2010","#5c3520","#7a4e30","#8a5c3a"],dens:55,con:28,freq:2,ctx:"standalone",style:"organic"},stone:{palette:["#18181f","#252530","#333344","#404056","#4e4e6a","#383848"],dens:50,con:45,freq:3,ctx:"standalone",style:"grainy"},cobblestone:{palette:["#141418","#202028","#2e2e3a","#3c3c50","#282838","#404054"],dens:60,con:40,freq:2,ctx:"standalone",style:"organic"},wood:{palette:["#2a1204","#3d1f08","#5c3018","#7a4828","#966040","#a87048"],dens:45,con:38,freq:2,ctx:"standalone",style:"organic"},mud:{palette:["#1a0f05","#2d1a08","#3d2410","#50301a","#603c20","#483020"],dens:60,con:22,freq:2,ctx:"standalone",style:"organic"},"iron ore":{palette:["#1a1824","#28263a","#363452","#242e48","#2e3c5e","#383a50"],dens:40,con:52,freq:2,ctx:"standalone",style:"grainy"},"copper ore":{palette:["#2a1005","#3d1c0a","#5a2c10","#7a3e1a","#9a5228","#b06030"],dens:40,con:48,freq:2,ctx:"standalone",style:"grainy"},"mossy rock":{palette:["#141c12","#1e2c1a","#283c22","#30482a","#384e2e","#243820"],dens:55,con:32,freq:2,ctx:"standalone",style:"organic"},sand:{palette:["#3a2e10","#504018","#6a5424","#8a6e30","#a8883e","#c0a050"],dens:45,con:12,freq:3,ctx:"coastline",style:"organic"},snow:{palette:["#8090a8","#9aaabf","#b0c0d5","#c4d4e8","#d8e8f4","#e8f2fc"],dens:40,con:10,freq:4,ctx:"standalone",style:"organic"},water:{palette:["#0a1a30","#0f2440","#163456","#1c446c","#225480","#183a60"],dens:30,con:18,freq:4,ctx:"standalone",style:"organic"},shale:{palette:["#1a1c20","#262830","#343640","#424452","#504f60","#3a3c4a"],dens:50,con:40,freq:3,ctx:"standalone",style:"organic"},mountain:{palette:["#28293a","#353648","#424358","#505168","#5e5f78","#484960"],dens:50,con:30,freq:3,ctx:"standalone",style:"organic"},path:{palette:["#2a1a08","#3d2810","#5c3c1a","#7a5428","#966c38","#a07840"],dens:55,con:38,freq:2,ctx:"path_edge",style:"organic"}};
+const PNAMES=Object.keys(PROFILES);
+const DRAW_PALETTE=["#000000","#1c1c1c","#383838","#5a5a5a","#888888","#b0b0b0","#d8d8d8","#ffffff","#1a0d07","#3d2015","#5c3522","#7d4e30","#a06840","#c48855","#dfa870","#f0cfa0","#0f1a07","#1e3310","#2d4820","#3e5e2e","#507840","#6a9858","#88b870","#a8d898","#0f1520","#1a2535","#2a3d52","#3a5068","#4a6888","#6090aa","#80b0cc","#a8d0e8","#1a0707","#3d1515","#652020","#902a2a","#b83838","#d45050","#e87878","#f0a8a8","#1a1507","#3a2e10","#5c4c20","#806838","#a88a50","#c8ac68","#e0cc88","#f0e8c0","#071a14","#0f3025","#1a4838","#286050","#388070","#50a090","#70c0b0","#98e0d0","#12071a","#251430","#3c2050","#543070","#7040a0","#9060c0","#b088e0","#d0b8f8"];
+const TRANSPBG="linear-gradient(45deg,#555 25%,transparent 25%,transparent 75%,#555 75%) 0 0/10px 10px,linear-gradient(45deg,#555 25%,transparent 25%,transparent 75%,#555 75%) 5px 5px/10px 10px,#2a2a2a";
+const S={W:32,H:32,zoom:10,grid:null,history:[],redos:[],tool:"pencil",color:"#7d4e30",transp:false,showGrid:true,style:"organic",blendTheme:"gradient",centerName:"grass",matNames:{tl:"grass",t:"grass",tr:"grass",l:"grass",r:"grass",bl:"grass",b:"grass",br:"grass"},matCustomGrids:{tl:null,t:null,tr:null,l:null,r:null,bl:null,b:null,br:null},tintColor:null,tintCache:{},shingleRows:4,shingleScatter:30,selectedNeighbor:null,noiseSeed:Math.random()*1000,drawing:false,lastX:-1,lastY:-1,snap:null};
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+function makeGrid(w,h){return Array.from({length:h},()=>Array(w).fill(null));}
+function copyGrid(g){return g.map(r=>[...r]);}
+function calcZoom(){const c=document.getElementById("canvasCard");return Math.min(16,Math.max(4,Math.floor((c.clientWidth-28)/S.W)));}
+function paintCanvas(){cv.width=S.W*S.zoom;cv.height=S.H*S.zoom;const z=S.zoom,g=S.grid;for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){const c=g[y][x];if(!c){const s=Math.max(2,Math.floor(z/2.5));for(let i=0;i*s<z;i++)for(let j=0;j*s<z;j++){ctx.fillStyle=(i+j)%2===0?"#252525":"#3a3a3a";ctx.fillRect(x*z+i*s,y*z+j*s,Math.min(s,z-i*s),Math.min(s,z-j*s));}}else{ctx.fillStyle=c;ctx.fillRect(x*z,y*z,z,z);}}if(S.showGrid&&S.zoom>=6){ctx.strokeStyle="rgba(255,255,255,0.06)";ctx.lineWidth=0.5;for(let x=0;x<=S.W;x++){ctx.beginPath();ctx.moveTo(x*S.zoom+.5,0);ctx.lineTo(x*S.zoom+.5,S.H*S.zoom);ctx.stroke();}for(let y=0;y<=S.H;y++){ctx.beginPath();ctx.moveTo(0,y*S.zoom+.5);ctx.lineTo(S.W*S.zoom,y*S.zoom+.5);ctx.stroke();}}cv.style.width=(S.W*S.zoom)+"px";cv.style.height=(S.H*S.zoom)+"px";}
+function getCell(cx,cy){const r=cv.getBoundingClientRect();return{x:Math.floor(((cx-r.left)*(cv.width/r.width))/S.zoom),y:Math.floor(((cy-r.top)*(cv.height/r.height))/S.zoom)};}
+function hexToRgb(h){const n=parseInt(h.slice(1),16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+function rgbToHex(r,g,b){return"#"+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0")).join("");}
+function blendHex(c1,c2,t){if(!c1&&!c2)return null;if(!c1)return c2;if(!c2)return c1;const a=hexToRgb(c1),b=hexToRgb(c2);return rgbToHex(a.r+(b.r-a.r)*t,a.g+(b.g-a.g)*t,a.b+(b.b-a.b)*t);}
+function adj(h,a){if(!h)return h;const r=hexToRgb(h);return rgbToHex(r.r+a,r.g+a,r.b+a);}
+function floodFill(x,y){const target=S.grid[y][x],fill=S.transp?null:S.color;if(target===fill)return;const g=copyGrid(S.grid),stack=[[x,y]];while(stack.length){const[cx,cy]=stack.pop();if(cx<0||cx>=S.W||cy<0||cy>=S.H||g[cy][cx]!==target)continue;g[cy][cx]=fill;stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);}S.grid=g;}
+function applyAt(x,y){if(x<0||x>=S.W||y<0||y>=S.H)return false;if(S.tool==="eyedropper"){const c=S.grid[y][x];S.color=c||"#7d4e30";S.transp=!c;updateColorUI();return false;}if(S.tool==="fill"){floodFill(x,y);return true;}const paint=S.transp?null:S.color;if(S.grid[y][x]===paint)return false;S.grid[y][x]=paint;return true;}
+function startDraw(x,y){S.drawing=true;S.lastX=x;S.lastY=y;S.snap=copyGrid(S.grid);if(applyAt(x,y))paintCanvas();}
+function drag(x,y){if(!S.drawing||(x===S.lastX&&y===S.lastY))return;S.lastX=x;S.lastY=y;if(applyAt(x,y))paintCanvas();}
+function endDraw(){if(S.drawing&&S.snap){S.history.push(S.snap);if(S.history.length>50)S.history.shift();S.redos=[];S.snap=null;updateHistoryBtns();}S.drawing=false;renderMatCell("c",S.grid);}
+function undo(){if(!S.history.length)return;S.redos.push(copyGrid(S.grid));S.grid=S.history.pop();paintCanvas();renderMatCell("c",S.grid);updateHistoryBtns();}
+function redo(){if(!S.redos.length)return;S.history.push(copyGrid(S.grid));S.grid=S.redos.pop();paintCanvas();renderMatCell("c",S.grid);updateHistoryBtns();}
+function updateHistoryBtns(){document.getElementById("btnUndo").disabled=!S.history.length;document.getElementById("btnRedo").disabled=!S.redos.length;}
+function rgbToHsl(rgb){const r=rgb.r/255,g=rgb.g/255,b=rgb.b/255;const max=Math.max(r,g,b),min=Math.min(r,g,b),l=(max+min)/2;if(max===min)return{h:0,s:0,l};const d=max-min,s=l>0.5?d/(2-max-min):d/(max+min);let h;if(max===r)h=((g-b)/d+(g<b?6:0))/6;else if(max===g)h=((b-r)/d+2)/6;else h=((r-g)/d+4)/6;return{h,s,l};}
+function hslToRgb(h,s,l){if(s===0){const v=Math.round(l*255);return{r:v,g:v,b:v};}const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;const hue2=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};return{r:Math.round(hue2(p,q,h+1/3)*255),g:Math.round(hue2(p,q,h)*255),b:Math.round(hue2(p,q,h-1/3)*255)};}
+function deriveShades(baseHex,n){const hsl=rgbToHsl(hexToRgb(baseHex));return Array.from({length:n},(_,i)=>{const t=i/(n-1);const l=0.10+t*0.48;const s2=Math.min(1,hsl.s*(0.75+Math.sin(t*Math.PI)*0.25));const rgb=hslToRgb(hsl.h,s2,l);return rgbToHex(rgb.r,rgb.g,rgb.b);});}
+function getActivePalette(profName){if(!S.tintColor)return PROFILES[profName].palette;if(!S.tintCache[profName])S.tintCache[profName]=deriveShades(S.tintColor,PROFILES[profName].palette.length);return S.tintCache[profName];}
+function setTintColor(hex){S.tintColor=hex;S.tintCache={};document.getElementById("tintBox").style.background=hex;document.getElementById("tintStatus").textContent="Active";document.getElementById("tintStatus").style.color="#c49a68";document.getElementById("btnClearTint").style.display="";}
+function clearTintColor(){S.tintColor=null;S.tintCache={};document.getElementById("tintBox").style.background="#1c1c1e";document.getElementById("tintStatus").textContent="Colour tint";document.getElementById("tintStatus").style.color="rgba(212,204,192,.35)";document.getElementById("btnClearTint").style.display="none";}
+function pseudo(a,b,s){return Math.abs(Math.sin(a*127.1+b*311.7+s*742.3)*43758.5453)%1;}
+function fade(t){return t*t*(3-2*t);}
+function vn(nx,ny,s){const ix=Math.floor(nx),iy=Math.floor(ny),fx=nx-ix,fy=ny-iy,ux=fade(fx),uy=fade(fy);const a=pseudo(ix,iy,s),b=pseudo(ix+1,iy,s),c=pseudo(ix,iy+1,s),d=pseudo(ix+1,iy+1,s);return Math.max(0,Math.min(1,a+(b-a)*ux+(c-a)*uy+(a-b-c+d)*ux*uy));}
+function tNoise(lx,ly,W,H,sc,s){const nx=lx/sc,ny=ly/sc,mx=(lx-W)/sc,my=(ly-H)/sc,fx=lx/W,fy=ly/H;return vn(nx,ny,s)*(1-fx)*(1-fy)+vn(mx,ny,s)*fx*(1-fy)+vn(nx,my,s)*(1-fx)*fy+vn(mx,my,s)*fx*fy;}
+function tFrac(lx,ly,W,H,sc,s){return tNoise(lx,ly,W,H,sc,s)*0.65+tNoise(lx,ly,W,H,sc*0.5,s+100)*0.35;}
+function samplePal(palette,n,dens,con,lx,ly,seed){const b=Math.pow(n,(100-dens)/50),idx=Math.min(palette.length-1,Math.floor(b*palette.length));const base=hexToRgb(palette[idx]);const v=(pseudo(lx*7+3,ly*13+7,seed+5)-0.5)*con*0.45;return rgbToHex(base.r+v,base.g+v,base.b+v);}
+function voronoi(lx,ly,W,H,num,seed){const cW=W/num,cH=H/num,gcx=Math.floor(lx/cW),gcy=Math.floor(ly/cH);let d1=1e9,d2=1e9,cid=0;for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){let ci=gcx+di,cj=gcy+dj,ox=0,oy=0;if(ci<0){ci+=num;ox=-W;}else if(ci>=num){ci-=num;ox=W;}if(cj<0){cj+=num;oy=-H;}else if(cj>=num){cj-=num;oy=H;}const sx=(ci+0.1+pseudo(ci,cj,seed)*0.8)*cW+ox;const sy=(cj+0.1+pseudo(ci,cj,seed+50)*0.8)*cH+oy;const d=Math.sqrt((lx-sx)**2+(ly-sy)**2);if(d<d1){d2=d1;d1=d;cid=ci*num+cj;}else if(d<d2)d2=d;}return{d1,d2,edge:d2-d1,cid};}
+function mountainVoronoi(lx,ly,W,H,num,seed){const cW=W/num,cH=H/num,gcx=Math.floor(lx/cW),gcy=Math.floor(ly/cH);let d1=1e9,d2=1e9,cid=0;for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){let ci=gcx+di,cj=gcy+dj,ox=0,oy=0;if(ci<0){ci+=num;ox=-W;}else if(ci>=num){ci-=num;ox=W;}if(cj<0){cj+=num;oy=-H;}else if(cj>=num){cj-=num;oy=H;}const sx=(ci+0.15+pseudo(ci,cj,seed)*0.7)*cW+ox;const sy=(cj+0.15+pseudo(ci,cj,seed+50)*0.7)*cH+oy;const dx=lx-sx,dy=ly-sy;const ang=pseudo(ci,cj,seed+100)*Math.PI*2;const bx=Math.cos(ang),by=Math.sin(ang);const u=dx*bx+dy*by;const v=-dx*by+dy*bx;let d=Math.sqrt(u*u/4.8+v*v)+0.28*u;d+=(tNoise(lx,ly,W,H,2.5,seed+200)-0.5)*0.75;if(d<d1){d2=d1;d1=d;cid=ci*num+cj;}else if(d<d2)d2=d;}return{d1,d2,edge:d2-d1,cid};}
+function shinglePixel(lx,ly,W,H,seed){const COLS=S.shingleRows,ROWS=S.shingleRows;const sc=S.shingleScatter/100;const cW=W/COLS,cH=H/ROWS;const R=cW*0.46,TAIL=cH*1.4,SHAD=1.3;const jag=(tNoise(lx,ly,W,H,1.4,seed+35)-0.5)*0.35;let topCY=-Infinity,topResult={type:"gap",bright:0};const rLo=Math.floor((ly-TAIL-2)/cH)-1,rHi=Math.floor((ly+R+SHAD+2)/cH)+1;for(let ri=rLo;ri<=rHi;ri++){const riW=((ri%ROWS)+ROWS)%ROWS;const xOff=(riW%2)*cW*0.5;const cy=(ri+0.64)*cH;const cLo=Math.floor((lx-xOff-R-2)/cW)-1,cHi=Math.floor((lx-xOff+R+2)/cW)+1;for(let ci=cLo;ci<=cHi;ci++){const ciW=((ci%COLS)+COLS)%COLS;const cx=ci*cW+xOff+cW*0.5;const jx=(pseudo(ciW,riW,seed+10)-0.5)*cW*sc*0.28;const jy=(pseudo(ciW,riW,seed+11)-0.5)*cH*sc*0.50;const scx=cx+jx,scy=cy+jy;const cm=S._containedMargin||0;if(cm>0&&(scx-R<cm||scx+R>W-cm||scy+R>H-cm||scy-TAIL<cm))continue;const dx=lx-scx,dy=ly-scy;const d=Math.sqrt(dx*dx+dy*dy);const dyU=scy-ly;let type=null;if(d<R){type="body";}else if(dy>0&&d<R+SHAD){type="shadow";}if(!type&&dyU>0&&dyU<TAIL){const t=dyU/TAIL;const hw=R*Math.pow(1-t,0.38)+jag;const fe=hw-Math.abs(dx);if(fe>=0)type=(fe<SHAD)?"shadow":"body";}if(type&&scy>topCY){topCY=scy;const perBright=(pseudo(ciW,riW,seed+20)-0.5)*24;const grad=(type==="body"&&d<R)?(-(dy/R)*16-5):0;topResult={type,bright:perBright+grad};}}}return topResult;}
+function textureDetail(prof,base,n,lx,ly,W,H,seed){if(!base)return null;switch(prof){case"grass":{const d=tNoise(lx,ly,W,H,1.8,seed+600);if(d>0.78)return adj(base,16);if(d<0.18)return adj(base,-13);return base;}case"dirt":{const p=tNoise(lx,ly,W,H,2.2,seed+700),p2=tNoise(lx,ly,W,H,1.2,seed+750);if(p>0.80&&p2>0.55)return adj(base,-22);if(p>0.85)return adj(base,-12);return base;}case"stone":{const sc=10,n0=tNoise(lx,ly,W,H,sc,seed+300),nr=tNoise((lx+1)%W,ly,W,H,sc,seed+300),nd=tNoise(lx,(ly+1)%H,W,H,sc,seed+300),grad=Math.abs(nr-n0)+Math.abs(nd-n0);if(grad>0.072)return adj(base,-35);if(n0>0.68)return adj(base,8);return base;}case"cobblestone":{const num=Math.max(3,Math.round(W/8)),v=voronoi(lx,ly,W,H,num,seed+800),mW=Math.max(1,(W/num)*0.2);if(v.edge<mW)return"#18182a";return adj(base,(pseudo(v.cid,7,seed)-0.5)*20);}case"wood":{const G=H/7,ph=tNoise(lx,ly,W,H,G*1.5,seed+500)*4-2,grain=Math.sin((ly+ph)/G*Math.PI*2);return adj(base,grain*11);}case"mud":{const wet=tNoise(lx,ly,W,H,5,seed+900);if(wet>0.72)return adj(base,15);if(wet<0.25)return adj(base,-8);return base;}case"iron ore":{const f=tNoise(lx,ly,W,H,1.4,seed+1000);if(f>0.86)return"#8090c0";if(f>0.80)return"#505878";return base;}case"copper ore":{const f=tFrac(lx,ly,W,H,3,seed+1100);if(f>0.80)return"#d07840";if(f>0.72)return"#a05828";return base;}case"mossy rock":{const sc=9,n0=tNoise(lx,ly,W,H,sc,seed+300),nr=tNoise((lx+1)%W,ly,W,H,sc,seed+300),nd=tNoise(lx,(ly+1)%H,W,H,sc,seed+300);if(Math.abs(nr-n0)+Math.abs(nd-n0)>0.065)return"#141610";const m=tFrac(lx,ly,W,H,4,seed+1200);if(m>0.68)return"#1e3812";if(m>0.60)return"#283820";return base;}case"sand":{const R=H/5,ph=tNoise(lx,ly,W,H,R*2,seed+1300)*3,rip=Math.sin((lx*0.35+ly*0.65+ph)/R*Math.PI*2);return adj(base,rip*9);}case"snow":{const sp=tNoise(lx,ly,W,H,1,seed+1400);if(sp>0.92)return"#f4f8ff";return adj(base,(tNoise(lx,ly,W,H,6,seed+1450)-0.5)*8);}case"water":{const R=H/4,ph=tNoise(lx,ly,W,H,7,seed+1500)*6,wave=Math.sin((ly+ph)/R*Math.PI*2);if(wave>0.5)return adj(base,24);if(wave<-0.6)return adj(base,-8);return base;}case"shale":{const num=Math.max(3,Math.round(W/8));const v=mountainVoronoi(lx,ly,W,H,num,seed+2000);const mW=Math.max(0.8,(W/num)*0.14);if(v.edge<mW)return"#141420";const ang=pseudo(v.cid%97,0,seed+2100)*Math.PI*2;return adj(base,Math.cos(ang-Math.PI*0.7)*22+(pseudo(v.cid,7,seed)-0.5)*16);}case"mountain":{const s=shinglePixel(lx,ly,W,H,seed+3000);S._shingleType=s.type;if(s.type==="shadow")return adj(base,-22);if(s.type==="gap")return adj(base,-38);return adj(base,s.bright||0);}case"path":{const G=H/5,ph=tNoise(lx,ly,W,H,G*2,seed+1600)*2.5,groove=Math.sin((ly+ph)/G*Math.PI*2);return adj(base,groove*7);}default:return base;}}
+function fullColor(profName,n,dens,con,lx,ly,seed){const palette=getActivePalette(profName);const base=samplePal(palette,n,dens,con,lx,ly,seed);return textureDetail(profName,base,n,lx,ly,S.W,S.H,seed);}
+function sampleCustomEdge(grid,side,x,y,dist){if(!grid)return null;const W=S.W,H=S.H;let cx,cy;if(side==="t"){cx=x;cy=H-1-dist;}else if(side==="b"){cx=x;cy=dist;}else if(side==="l"){cx=W-1-dist;cy=y;}else{cx=dist;cy=y;}return grid[Math.max(0,Math.min(H-1,cy))]?.[Math.max(0,Math.min(W-1,cx))]||null;}
+function applyEdgeTheme(baseColor,neighborColor,dist,along,alongLen,theme,blendDist,lx,ly,seed){if(dist>=blendDist||!neighborColor)return baseColor;const ss=t=>t*t*(3-2*t);if(theme==="gradient")return blendHex(baseColor,neighborColor,ss(1-dist/blendDist));if(theme==="rocky"){const rSc=Math.max(2,blendDist*0.8),rn=tFrac(lx,ly,S.W,S.H,rSc,seed+777);if(rn>0.25+(dist/blendDist)*0.65)return adj(neighborColor,(tNoise(lx,ly,S.W,S.H,rSc*0.4,seed+888)-0.5)*20);return baseColor;}if(theme==="scalloped"){const R=Math.max(2,blendDist);const si=Math.round((along-R)/(2*R));const Ri=R*(0.78+pseudo(Math.max(0,si),1,seed+555)*0.38);const ph=(along%(2*R)+2*R)%(2*R);const hc=Math.min(ph,2*R-ph);const dSq=hc*hc+dist*dist;if(dSq<Ri*Ri)return neighborColor;if(dSq<(Ri+1.8)*(Ri+1.8))return adj(baseColor,-30);return baseColor;}if(theme==="curb"){const BRICK="#525262",MORTAR="#28283a";const d=Math.min(blendDist,5);if(dist>=d)return baseColor;if(dist===0||dist===d-1)return MORTAR;const row=dist-1,bW=Math.max(2,Math.floor(alongLen/8));return(along+(row%2)*Math.floor(bW/2))%(bW+1)===bW?MORTAR:BRICK;}if(theme==="organic"){const threshold=dist/blendDist;const noise=tFrac(lx,ly,S.W,S.H,3,seed+420);return noise>threshold?neighborColor:baseColor;}return baseColor;}
+function genTile(profName,dens,con,freq,style,context,blendDist,blendTheme,edgeBlend,seed){const W=S.W,H=S.H,newGrid=makeGrid(W,H);S._containedMargin=(context==="contained"&&blendDist>0)?blendDist:0;for(let y=0;y<H;y++){for(let x=0;x<W;x++){if(context==="sprite_form"){const cx=W/2,cy=H*0.45,rx=W*0.38,ry=H*0.46;if(((x-cx)/rx)**2+((y-cy)/ry)**2+(tNoise(x,y,W,H,3,seed+500)-0.5)*0.18>1){newGrid[y][x]=null;continue;}}if(blendTheme==="organic"&&edgeBlend&&blendDist>0&&context!=="contained"){const oChecks=[{name:edgeBlend.t,key:"t",dist:y,bNoise:tFrac(x,0,W,H,2.5,seed+424)},{name:edgeBlend.b,key:"b",dist:H-1-y,bNoise:tFrac(x,0,W,H,2.5,seed+425)},{name:edgeBlend.l,key:"l",dist:x,bNoise:tFrac(0,y,W,H,2.5,seed+422)},{name:edgeBlend.r,key:"r",dist:W-1-x,bNoise:tFrac(0,y,W,H,2.5,seed+423)}];let claimed=null;for(const{name,key,dist,bNoise}of oChecks){if(!name)continue;const boundary=bNoise*blendDist;if(dist<boundary){if(name==="custom"){claimed=sampleCustomEdge(S.matCustomGrids[key],key,x,y,dist);}else{const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);claimed=fullColor(name,nn,np.dens,np.con,x,y,seed);}break;}}if(claimed!==null){newGrid[y][x]=claimed;continue;}}let n;if(style==="grainy")n=tNoise(x,y,W,H,1,seed);else if(style==="organic")n=tFrac(x,y,W,H,freq*3+1,seed);else n=tNoise(x,y,W,H,freq*6+2,seed)*0.75+tNoise(x,y,W,H,freq*3+1,seed+200)*0.25;let color=fullColor(profName,n,dens,con,x,y,seed);if(edgeBlend&&blendDist>0&&blendTheme!=="organic"){const edges=[{key:"t",name:edgeBlend.t,dist:y,along:x,len:W,side:"t"},{key:"b",name:edgeBlend.b,dist:H-1-y,along:x,len:W,side:"b"},{key:"l",name:edgeBlend.l,dist:x,along:y,len:H,side:"l"},{key:"r",name:edgeBlend.r,dist:W-1-x,along:y,len:H,side:"r"}];for(const{key,name,dist,along,len,side}of edges){if(!name||dist>=blendDist)continue;let nc;if(name==="custom"){nc=sampleCustomEdge(S.matCustomGrids[key],side,x,y,dist);}else{const np=PROFILES[name];nc=fullColor(name,n,np.dens,np.con,x,y,seed);}if(nc)color=applyEdgeTheme(color,nc,dist,along,len,blendTheme,blendDist,x,y,seed);}}if(context==="path_edge"){const ed=Math.min(x,y,W-1-x,H-1-y);if(ed<3)color=PROFILES[profName].palette[0];}else if(context==="coastline"){const ed=Math.min(x,y,W-1-x,H-1-y);if(ed<4&&pseudo(x,y,seed+9)<(1-ed/4)*0.7)color=PROFILES[profName].palette[0];}if(blendTheme==="organic"&&edgeBlend&&blendDist>0&&color){if(context==="contained"){const R_sc=W/(S.shingleRows||4)*0.46;const extDist=blendDist+Math.ceil(R_sc)+1;const cEdges=[{name:edgeBlend.t,key:"t",dist:y},{name:edgeBlend.b,key:"b",dist:H-1-y},{name:edgeBlend.l,key:"l",dist:x},{name:edgeBlend.r,key:"r",dist:W-1-x}].sort((a,b2)=>a.dist-b2.dist);for(const{name,key,dist}of cEdges){if(!name||dist>=extDist)break;if(S._shingleType!=="body"){if(name==="custom"){const sc=sampleCustomEdge(S.matCustomGrids[key],key,x,y,dist);if(sc)color=sc;}else{const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);color=fullColor(name,nn,np.dens,np.con,x,y,seed);}}break;}}else{const extW=3;const pEdges=[{name:edgeBlend.t,key:"t",dist:y,bn:tFrac(x,0,W,H,2.5,seed+424)},{name:edgeBlend.b,key:"b",dist:H-1-y,bn:tFrac(x,0,W,H,2.5,seed+425)},{name:edgeBlend.l,key:"l",dist:x,bn:tFrac(0,y,W,H,2.5,seed+422)},{name:edgeBlend.r,key:"r",dist:W-1-x,bn:tFrac(0,y,W,H,2.5,seed+423)}];for(const{name,key,dist,bn}of pEdges){if(!name)continue;const boundary=bn*blendDist;if(dist>=boundary&&dist<boundary+extW){const isGap=profName==="mountain"?(S._shingleType!=="body"):false;if(isGap){const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);color=fullColor(name,nn,np.dens,np.con,x,y,seed);}else{const t=1-(dist-boundary)/extW;color=adj(color,-Math.round(28*t));}break;}}}}newGrid[y][x]=color;}}return newGrid;}
+function bakeMatrix(){S.noiseSeed=Math.random()*1000;_bakeWithSeed(S.noiseSeed);}
+function _bakeWithSeed(seed){const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=document.getElementById("selectContext").value;const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const hasBlend=eb.t||eb.b||eb.l||eb.r;const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,hasBlend?eb:null,seed);renderMatCell("c",cg);["tl","t","tr","l","r","bl","b","br"].forEach(key=>{if(S.matCustomGrids[key]){renderMatCell(key,S.matCustomGrids[key]);return;}const name=mn[key],p=PROFILES[name];renderMatCell(key,genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,seed));});S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
+function rebakeCenter(){const seed=S.noiseSeed;const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=document.getElementById("selectContext").value;const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,eb.t||eb.b||eb.l||eb.r?eb:null,seed);renderMatCell("c",cg);S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
+function renderMatCell(key,grid){const cell=document.querySelector(`.mcell[data-key="${key}"]`);if(!cell||!grid)return;let canvas=cell.querySelector("canvas");if(!canvas){canvas=document.createElement("canvas");cell.insertBefore(canvas,cell.firstChild);}canvas.width=S.W;canvas.height=S.H;const c=canvas.getContext("2d");for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){c.fillStyle=grid[y][x]||((x+y)%2===0?"#252525":"#3a3a3a");c.fillRect(x,y,1,1);}const cw=cell.offsetWidth;if(cw>0)canvas.style.height=(cw*(S.H/S.W))+"px";}
+function updateMatLabel(key,name){const cell=document.querySelector(`.mcell[data-key="${key}"]`);if(!cell)return;const pos={tl:"top-left",t:"top",tr:"top-right",l:"left",r:"right",bl:"btm-left",b:"bottom",br:"btm-right"};cell.setAttribute("data-label",key==="c"?`center · ${S.centerName}`:`${pos[key]||key} · ${name}`);}
+function loadCustomTexture(key){const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=e=>{const file=e.target.files[0];if(!file)return;const img=new Image();img.onload=()=>{const offscreen=document.createElement("canvas");offscreen.width=S.W;offscreen.height=S.H;const c=offscreen.getContext("2d");c.drawImage(img,0,0,S.W,S.H);const id=c.getImageData(0,0,S.W,S.H);const grid=makeGrid(S.W,S.H);for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){const i=(y*S.W+x)*4;grid[y][x]=id.data[i+3]>0?rgbToHex(id.data[i],id.data[i+1],id.data[i+2]):null;}S.matCustomGrids[key]=grid;S.matNames[key]="custom";updateMatLabel(key,"custom");renderMatCell(key,grid);updateUploadRow();rebakeCenter();};img.src=URL.createObjectURL(file);};inp.click();}
+const POSNAMES={tl:"top-left",t:"top",tr:"top-right",l:"left",r:"right",bl:"btm-left",b:"bottom",br:"btm-right"};
+function updateUploadRow(){const key=S.selectedNeighbor;const row=document.getElementById("matrixUploadRow");const clearBtn=document.getElementById("btnClearNeighbor");if(!key){row.classList.remove("show");return;}row.classList.add("show");clearBtn.style.display=S.matCustomGrids[key]?"":"none";}
+function selectNeighbor(key){if(key==="c")return;if(S.selectedNeighbor===key){S.selectedNeighbor=null;document.querySelectorAll(".mcell").forEach(el=>el.classList.remove("selected"));document.getElementById("matrixMsg").textContent="Tap a surrounding tile to select it, then assign a texture or upload a PNG";document.getElementById("matrixMsg").classList.remove("hot");updateUploadRow();}else{S.selectedNeighbor=key;document.querySelectorAll(".mcell").forEach(el=>el.classList.toggle("selected",el.dataset.key===key));document.getElementById("matrixMsg").textContent=`${POSNAMES[key]} (${S.matNames[key]}) selected`;document.getElementById("matrixMsg").classList.add("hot");updateUploadRow();}}
+function applyProfile(name){const p=PROFILES[name];if(!p)return;if(S.selectedNeighbor){S.matNames[S.selectedNeighbor]=name;S.matCustomGrids[S.selectedNeighbor]=null;updateMatLabel(S.selectedNeighbor,name);updateUploadRow();const pg=genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,S.noiseSeed);renderMatCell(S.selectedNeighbor,pg);rebakeCenter();document.getElementById("matrixMsg").textContent=`${POSNAMES[S.selectedNeighbor]} → ${name}`;}else{S.centerName=name;updateMatLabel("c",name);document.getElementById("hdr-profile").textContent=name;document.getElementById("slideDensity").value=p.dens;document.getElementById("densityVal").textContent=p.dens;document.getElementById("slideContrast").value=p.con;document.getElementById("contrastVal").textContent=p.con;document.getElementById("slideFreq").value=p.freq;document.getElementById("freqVal").textContent=p.freq;document.getElementById("selectContext").value=p.ctx;S.style=p.style||"organic";document.querySelectorAll("#styleRow button").forEach(b=>b.classList.toggle("on",b.dataset.s===S.style));bakeMatrix();}document.querySelectorAll(".pchip").forEach(c=>{const active=S.selectedNeighbor?S.matNames[S.selectedNeighbor]===c.dataset.p:S.centerName===c.dataset.p;c.classList.toggle("on",active);});}
+function exportPNG(){const out=document.createElement("canvas");out.width=S.W;out.height=S.H;const c=out.getContext("2d");for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++)if(S.grid[y][x]){c.fillStyle=S.grid[y][x];c.fillRect(x,y,1,1);}out.toBlob(blob=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sprite_"+S.W+"x"+S.H+".png";a.click();},"image/png");}
+function updateColorUI(){document.getElementById("swatch").style.background=S.transp?TRANSPBG:S.color;if(!S.transp)document.getElementById("colorPick").value=S.color;document.getElementById("btnTransp").classList.toggle("on",S.transp);document.querySelectorAll(".sw").forEach(el=>el.classList.toggle("on",!S.transp&&el.dataset.c===S.color));}
+function setTool(t){S.tool=t;document.querySelectorAll("#toolRow button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));}
+function changePreset(val){const[w,h]=val.split(",").map(Number);S.W=w;S.H=h;S.grid=makeGrid(w,h);S.history=[];S.redos=[];S.zoom=calcZoom();bakeMatrix();}
+function buildProfileChips(){const w=document.getElementById("profileChips");PNAMES.forEach(name=>{const sp=document.createElement("span");sp.className="pchip"+(name==="grass"?" on":"");sp.textContent=name;sp.dataset.p=name;sp.addEventListener("click",()=>applyProfile(name));w.appendChild(sp);});}
+function buildPalette(){const pal=document.getElementById("palette");DRAW_PALETTE.forEach(c=>{const d=document.createElement("div");d.className="sw";d.dataset.c=c;d.style.background=c;d.addEventListener("click",()=>{S.color=c;S.transp=false;updateColorUI();});pal.appendChild(d);});}
+
+// ── Desktop hover ─────────────────────────────────────────────────────────────
+function initDesktopHover(){
+  const genPane=document.getElementById("pane-gen");
+  const editPane=document.getElementById("pane-edit");
+  let gT,eT;
+  const og=()=>{clearTimeout(gT);genPane.classList.add("open");};
+  const cg=()=>{gT=setTimeout(()=>genPane.classList.remove("open"),180);};
+  const oe=()=>{clearTimeout(eT);editPane.classList.add("open");S.zoom=calcZoom();paintCanvas();};
+  const ce=()=>{eT=setTimeout(()=>editPane.classList.remove("open"),180);};
+  [document.getElementById("tab-gen"),genPane].forEach(el=>{el.addEventListener("mouseenter",og);el.addEventListener("mouseleave",cg);});
+  [document.getElementById("tab-edit"),editPane].forEach(el=>{el.addEventListener("mouseenter",oe);el.addEventListener("mouseleave",ce);});
+}
+
+// ── Mobile swipe ──────────────────────────────────────────────────────────────
+const MOB_ORDER=["pane-gen","pane-preview","pane-edit","pane-help"];
+let mobCurrent="pane-preview";
+function switchMob(id){
+  MOB_ORDER.forEach(pid=>document.getElementById(pid).classList.toggle("mob-active",pid===id));
+  document.querySelectorAll(".dot-btn").forEach(b=>b.classList.toggle("active",b.dataset.mob===id));
+  mobCurrent=id;
+  if(id==="pane-edit"){S.zoom=calcZoom();paintCanvas();}
+}
+function initMobileSwipe(){
+  const main=document.getElementById("main");
+  let sx=0,sy=0,moved=false;
+  main.addEventListener("touchstart",e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;moved=false;},{passive:true});
+  main.addEventListener("touchmove",e=>{moved=true;},{passive:true});
+  main.addEventListener("touchend",e=>{
+    if(!moved)return;
+    const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<Math.abs(dy)*1.5||Math.abs(dx)<30)return;
+    const idx=MOB_ORDER.indexOf(mobCurrent);
+    if(dx<0&&idx<MOB_ORDER.length-1)switchMob(MOB_ORDER[idx+1]);
+    else if(dx>0&&idx>0)switchMob(MOB_ORDER[idx-1]);
+  },{passive:true});
+  document.querySelectorAll(".dot-btn").forEach(b=>b.addEventListener("click",()=>switchMob(b.dataset.mob)));
+}
+
+// ── Tutorial ──────────────────────────────────────────────────────────────────
+const STEPS=[
+  {title:"Welcome to Krovach Sprite",text:"A procedural pixel art tile generator for your RPG. Let's walk through the main features — takes about a minute.",mob:"The tour works best in landscape mode or on a larger screen.",target:null,open:null,mobPanel:null},
+  {title:"The Preview",text:"The 3×3 matrix is always visible. The centre tile is what you're making. Surrounding tiles show how it tiles seamlessly with itself or other textures.",target:"matrixGrid",open:null,mobPanel:"pane-preview"},
+  {title:"Open Settings",text:"Hover the ⚙ tab at the left edge to slide out the Settings panel. It closes when you move away.",mob:"Tap ⚙ at the bottom, or swipe right from the Preview.",target:"tab-gen",open:null,mobPanel:null},
+  {title:"Choose a Texture",text:"Scroll the chips to pick your texture type. Tapping one auto-bakes with its default settings.",target:"profileChips",open:"pane-gen",mobPanel:"pane-gen"},
+  {title:"Colour Tint",text:"The tint swatch overrides the entire colour palette with a hue you choose. Useful for dead grass, rusty ore, or seasonal variants.",target:"tintRow",open:"pane-gen",mobPanel:"pane-gen"},
+  {title:"Parameters",text:"Density shifts the overall tone. Contrast adds grain. Patch size zooms the noise. Scale size and scatter control the Mountain texture's overlapping scales.",target:"slideDensity",open:"pane-gen",mobPanel:"pane-gen"},
+  {title:"Edge Style",text:"Controls how your tile transitions to its neighbours. Organic creates clean wiggly borders. Edge Depth sets how far the effect reaches.",target:"blendThemeRow",open:"pane-gen",mobPanel:"pane-gen"},
+  {title:"Bake",text:"Generates a new tile with current settings and a fresh random seed. Every bake is different.",target:"btnBake",open:"pane-gen",mobPanel:"pane-gen"},
+  {title:"Change a Neighbour",text:"Tap any surrounding tile in the matrix to select it, then pick a texture in Settings. The centre tile updates its edge live.",target:"matrixGrid",open:null,mobPanel:"pane-preview"},
+  {title:"Open Edit",text:"Hover the ✏ tab at the right edge to open the Edit panel for manual pixel painting.",mob:"Tap ✏ at the bottom, or swipe left from the Preview.",target:"tab-edit",open:null,mobPanel:null},
+  {title:"Drawing Tools",text:"Pencil, Erase, Fill, and Pick. Tap the swatch for a colour, or expand Palette for 64 presets. Undo and redo support 50 steps.",target:"toolRow",open:"pane-edit",mobPanel:"pane-edit"},
+  {title:"Export",text:"Tap Export in the header to download your tile as a PNG at native resolution.",target:"btnExport",open:null,mobPanel:null},
+  {title:"You're all set",text:"That's everything. Find this guide again anytime in the Guide tab. Happy tiling.",target:null,open:null,mobPanel:null},
+];
+let tutStep=-1;
+function isMobile(){return window.innerWidth<600;}
+
+function startTutorial(){
+  document.getElementById("welcome").style.display="none";
+  document.getElementById("tut-scrim").style.display="block";
+  document.getElementById("tut-skip").style.display="block";
+  tutStep=0;
+  showStep(0);
+}
+function endTutorial(){
+  document.getElementById("tut-scrim").style.display="none";
+  document.getElementById("tut-spot").style.display="none";
+  document.getElementById("tut-card").style.display="none";
+  document.getElementById("tut-skip").style.display="none";
+  tutStep=-1;
+  localStorage.setItem("krovach-tour-done","1");
+}
+
+function showStep(n){
+  if(n<0||n>=STEPS.length){endTutorial();return;}
+  tutStep=n;
+  const step=STEPS[n];
+  const mob=isMobile();
+
+  // Navigate to correct panel
+  if(mob&&step.mobPanel)switchMob(step.mobPanel);
+  else if(!mob&&step.open){
+    if(step.open==="pane-gen")document.getElementById("pane-gen").classList.add("open");
+    if(step.open==="pane-edit"){document.getElementById("pane-edit").classList.add("open");S.zoom=calcZoom();paintCanvas();}
+  }
+
+  setTimeout(()=>{
+    const text=mob&&step.mob?step.mob:step.text;
+    const targetId=mob&&step.mobPanel?null:step.target;
+    const target=targetId?document.getElementById(targetId):null;
+
+    document.getElementById("tut-title").textContent=step.title;
+    document.getElementById("tut-text").textContent=text;
+    document.getElementById("tut-progress").textContent=`${n+1} / ${STEPS.length}`;
+    document.getElementById("tut-prev").style.visibility=n>0?"visible":"hidden";
+    document.getElementById("tut-next").textContent=n===STEPS.length-1?"Done":"Next →";
+
+    const spot=document.getElementById("tut-spot");
+    const card=document.getElementById("tut-card");
+    card.style.transform="";
+
+    if(target&&target.offsetParent!==null){
+      const r=target.getBoundingClientRect();
+      const pad=8;
+      spot.style.cssText=`display:block;left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px`;
+      const cw=Math.min(260,window.innerWidth-32);
+      card.style.width=cw+"px";
+      const ch=card.offsetHeight||170;
+      const margin=14;
+      let top=r.bottom+margin<window.innerHeight-ch-20?r.bottom+margin:r.top-ch-margin>20?r.top-ch-margin:window.innerHeight-ch-20;
+      let left=Math.max(16,Math.min(r.left+r.width/2-cw/2,window.innerWidth-cw-16));
+      card.style.cssText+=`;display:block;left:${left}px;top:${Math.max(16,top)}px;transform:none`;
+    }else{
+      spot.style.display="none";
+      card.style.cssText="display:block;left:50%;top:50%;transform:translate(-50%,-50%)";
+    }
+  },step.open||step.mobPanel?260:0);
+}
+
+// ── Help modal ────────────────────────────────────────────────────────────────
+function openHelp(){
+  if(isMobile())switchMob("pane-help");
+  else document.getElementById("help-overlay").classList.add("open");
+}
+
+// ── Welcome ───────────────────────────────────────────────────────────────────
+function checkWelcome(){
+  if(localStorage.getItem("krovach-tour-done")){
+    document.getElementById("welcome").style.display="none";
+  }
+}
+
+function isMobile(){return window.innerWidth<600;}
+
+function init(){
+  S.grid=makeGrid(S.W,S.H);S.zoom=calcZoom();
+  buildProfileChips();buildPalette();updateColorUI();updateHistoryBtns();
+  document.querySelectorAll(".mcell").forEach(el=>el.addEventListener("click",()=>selectNeighbor(el.dataset.key)));
+
+  if(isMobile())initMobileSwipe();else initDesktopHover();
+  window.addEventListener("resize",()=>{S.zoom=calcZoom();paintCanvas();});
+  bakeMatrix();
+  setTimeout(checkWelcome,400);
+
+  cv.addEventListener("mousedown",e=>{if(e.button!==0)return;startDraw(...Object.values(getCell(e.clientX,e.clientY)));});
+  cv.addEventListener("mousemove",e=>drag(...Object.values(getCell(e.clientX,e.clientY))));
+  cv.addEventListener("mouseup",endDraw);cv.addEventListener("mouseleave",endDraw);
+  cv.addEventListener("contextmenu",e=>e.preventDefault());
+  cv.addEventListener("touchstart",e=>{e.preventDefault();const t=e.touches[0];startDraw(...Object.values(getCell(t.clientX,t.clientY)));},{passive:false});
+  cv.addEventListener("touchmove",e=>{e.preventDefault();const t=e.touches[0];drag(...Object.values(getCell(t.clientX,t.clientY)));},{passive:false});
+  cv.addEventListener("touchend",e=>{e.preventDefault();endDraw();},{passive:false});
+
+  document.getElementById("preset").addEventListener("change",e=>changePreset(e.target.value));
+  document.getElementById("btnExport").addEventListener("click",exportPNG);
+  document.getElementById("btnBake").addEventListener("click",bakeMatrix);
+  document.getElementById("btnHelp").addEventListener("click",openHelp);
+  document.getElementById("btnCloseHelp").addEventListener("click",()=>document.getElementById("help-overlay").classList.remove("open"));
+  document.getElementById("help-overlay").addEventListener("click",e=>{if(e.target===document.getElementById("help-overlay"))document.getElementById("help-overlay").classList.remove("open");});
+  document.getElementById("btnStartTour").addEventListener("click",startTutorial);
+  document.getElementById("btnSkipTour").addEventListener("click",()=>{document.getElementById("welcome").style.display="none";localStorage.setItem("krovach-tour-done","1");});
+  document.getElementById("tut-next").addEventListener("click",()=>showStep(tutStep+1));
+  document.getElementById("tut-prev").addEventListener("click",()=>showStep(tutStep-1));
+  document.getElementById("tut-skip").addEventListener("click",endTutorial);
+  document.getElementById("btnRestartTutorial").addEventListener("click",()=>{if(isMobile())switchMob("pane-preview");else{document.getElementById("help-overlay").classList.remove("open");}startTutorial();});
+
+  document.getElementById("tintPick").addEventListener("input",e=>setTintColor(e.target.value));
+  document.getElementById("tintSwatch").addEventListener("click",()=>{if(!S.tintColor)document.getElementById("tintPick").click();});
+  document.getElementById("btnClearTint").addEventListener("click",()=>{clearTintColor();rebakeCenter();});
+  document.getElementById("btnUploadNeighbor").addEventListener("click",()=>{if(S.selectedNeighbor)loadCustomTexture(S.selectedNeighbor);});
+  document.getElementById("btnClearNeighbor").addEventListener("click",()=>{const key=S.selectedNeighbor;if(!key)return;S.matCustomGrids[key]=null;const name=PNAMES.includes(S.matNames[key])?S.matNames[key]:"grass";S.matNames[key]=name;updateMatLabel(key,name);updateUploadRow();const p=PROFILES[name];renderMatCell(key,genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,S.noiseSeed));rebakeCenter();});
+  [["slideDensity","densityVal"],["slideContrast","contrastVal"],["slideFreq","freqVal"],["slideBlend","blendVal"]].forEach(([id,vid])=>{document.getElementById(id).addEventListener("input",e=>document.getElementById(vid).textContent=e.target.value);});
+  [["slideShingleRows","shingleRowsVal"],["slideShingleScatter","shingleScatterVal"]].forEach(([id,vid])=>{document.getElementById(id).addEventListener("input",e=>{document.getElementById(vid).textContent=e.target.value;if(id==="slideShingleRows")S.shingleRows=parseInt(e.target.value);if(id==="slideShingleScatter")S.shingleScatter=parseInt(e.target.value);rebakeCenter();});});
+  document.querySelectorAll("#styleRow button").forEach(b=>b.addEventListener("click",()=>{S.style=b.dataset.s;document.querySelectorAll("#styleRow button").forEach(x=>x.classList.toggle("on",x.dataset.s===S.style));}));
+  document.querySelectorAll("#blendThemeRow button").forEach(b=>b.addEventListener("click",()=>{S.blendTheme=b.dataset.bt;document.querySelectorAll("#blendThemeRow button").forEach(x=>x.classList.toggle("on",x.dataset.bt===S.blendTheme));}));
+  document.querySelectorAll("#toolRow button").forEach(b=>b.addEventListener("click",()=>setTool(b.dataset.t)));
+  document.getElementById("colorPick").addEventListener("input",e=>{S.color=e.target.value;S.transp=false;updateColorUI();});
+  document.getElementById("btnTransp").addEventListener("click",()=>{S.transp=!S.transp;if(!S.transp&&!S.color)S.color="#7d4e30";updateColorUI();});
+  document.getElementById("btnUndo").addEventListener("click",undo);
+  document.getElementById("btnRedo").addEventListener("click",redo);
+  document.getElementById("btnGrid").addEventListener("click",()=>{S.showGrid=!S.showGrid;document.getElementById("btnGrid").classList.toggle("on",S.showGrid);paintCanvas();});
+  document.getElementById("btnClear").addEventListener("click",()=>{S.history.push(copyGrid(S.grid));S.redos=[];S.grid=makeGrid(S.W,S.H);paintCanvas();renderMatCell("c",S.grid);updateHistoryBtns();});
+  document.getElementById("btnPalette").addEventListener("click",()=>{const p=document.getElementById("palette");const open=p.classList.toggle("show");document.getElementById("btnPalette").textContent=open?"▴ Palette":"▾ Palette";});
+}
+init();
+</script>
+</body>
+</html>
