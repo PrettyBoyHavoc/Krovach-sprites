@@ -16,6 +16,10 @@ button{cursor:pointer}
 #hdr-profile{font-size:12px;color:#d4ccc0;font-weight:500}
 #preset{background:#1c1c1e;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#d4ccc0;font-size:11px;padding:5px 7px;cursor:pointer}
 #btnExport{background:rgba(196,154,104,.15);color:#c49a68;border:1px solid rgba(196,154,104,.3);border-radius:7px;font-size:11px;font-weight:600;padding:5px 12px}
+#hdr-nav{display:flex;gap:4px}
+.hdr-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:rgba(212,204,192,.7);font-size:12px;font-weight:500;padding:5px 12px;transition:background .15s,color .15s}
+.hdr-btn:hover{background:rgba(196,154,104,.15);color:#c49a68;border-color:rgba(196,154,104,.3)}
+.hdr-btn.active{background:rgba(196,154,104,.18);color:#c49a68;border-color:rgba(196,154,104,.4)}
 #btnHelp{background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:rgba(212,204,192,.5);font-size:13px;font-weight:600;padding:5px 10px;line-height:1}
 
 /* ── Main stage ── */
@@ -81,7 +85,20 @@ input[type=range]{width:100%;accent-color:#c49a68;cursor:pointer;height:3px}
 .seg{display:flex;background:rgba(0,0,0,.3);border-radius:8px;padding:2px;gap:2px}
 .seg button{flex:1;padding:6px 2px;border:none;border-radius:6px;background:transparent;font-size:10px;font-weight:500;color:rgba(212,204,192,.4);cursor:pointer}
 .seg button.on{background:rgba(255,255,255,.08);color:#c49a68}
-.pane-select{width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#d4ccc0;font-size:12px;padding:8px 10px;cursor:pointer}
+.pane-select{width:100%;background:rgba(196,154,104,.15);color:#c49a68;border:1px solid rgba(196,154,104,.3);border-radius:8px;font-size:12px;font-weight:600;padding:8px 10px;cursor:pointer}
+/* ── Custom select ── */
+.csel{position:relative;width:100%}
+.csel-btn{width:100%;background:rgba(196,154,104,.15);color:#c49a68;border:1px solid rgba(196,154,104,.3);border-radius:8px;font-size:12px;font-weight:600;padding:8px 10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left;font-family:inherit;transition:background .15s}
+.csel-btn:hover{background:rgba(196,154,104,.24)}
+.csel-arr{font-size:10px;opacity:.7;transition:transform .18s}
+.csel.open .csel-arr{transform:rotate(180deg)}
+.csel-menu{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#1a1a1d;border:1px solid rgba(196,154,104,.3);border-radius:8px;z-index:500;display:none;overflow:hidden;box-shadow:0 10px 36px rgba(0,0,0,.6)}
+.csel.open .csel-menu{display:block}
+.csel-inner{max-height:220px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(196,154,104,.3) transparent}
+.csel-opt{padding:9px 12px;font-size:12px;color:rgba(212,204,192,.6);cursor:pointer;transition:background .1s,color .1s}
+.csel-opt:hover{background:rgba(196,154,104,.12);color:#c49a68}
+.csel-opt.on{color:#c49a68;background:rgba(196,154,104,.08);font-weight:600}
+#profileSelect{display:none}
 
 /* ── Bake footer ── */
 #bake-footer{position:sticky;bottom:0;background:rgba(15,15,18,.97);padding:10px 14px;border-top:1px solid rgba(255,255,255,.06)}
@@ -164,15 +181,20 @@ details.hs .hs-body strong{color:#d4ccc0}
 #tut-skip{position:fixed;bottom:20px;right:20px;z-index:5003;padding:8px 14px;border:1px solid rgba(255,255,255,.1);border-radius:20px;background:rgba(13,13,15,.8);color:rgba(212,204,192,.4);font-size:11px;cursor:pointer;display:none}
 
 /* ── Mobile overrides ── */
+@media(min-width:600px){
+  #profileChips{display:none!important}
+  #profileSelect{display:block!important;width:100%}
+}
 @media(max-width:599px){
   #main{overflow:visible}
   #pane-preview,#pane-gen,#pane-edit{position:static!important;transform:none!important;width:100%!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:transparent!important;border:none!important;display:none}
   #pane-preview.mob-active,#pane-gen.mob-active,#pane-edit.mob-active{display:flex;flex-direction:column;flex:1}
+  #matrixGrid{max-width:100%}
   #bake-footer{position:fixed;bottom:48px;left:0;right:0;background:rgba(15,15,18,.97)}
   .edge-tab{display:none!important}
+  #hdr-nav{display:none}
   #btnHelp{display:none}
   #dots{display:flex}
-  #matrixGrid{max-width:100%}
   #help-overlay{display:none!important}
 }
 </style>
@@ -182,6 +204,10 @@ details.hs .hs-body strong{color:#d4ccc0}
 <!-- Header -->
 <div id="hdr">
   <span id="hdr-title">KROVACH SPRITE</span>
+  <div id="hdr-nav">
+    <button class="hdr-btn" id="hdrBtnGen">⚙ Settings</button>
+    <button class="hdr-btn" id="hdrBtnEdit">✏ Edit</button>
+  </div>
   <span id="hdr-profile">grass</span>
   <select id="preset"><option value="16,16">16×16</option><option value="32,32" selected>32×32</option><option value="28,48">28×48</option><option value="48,48">48×48</option></select>
   <button id="btnHelp">?</button>
@@ -207,15 +233,14 @@ details.hs .hs-body strong{color:#d4ccc0}
     <div id="matrixUploadRow">
       <button id="btnUploadNeighbor">↑ Upload PNG</button>
       <button id="btnClearNeighbor">✕ Clear</button>
-    </div>
-  </div>
-
-  <!-- Settings (desktop: slides from left) -->
+    </div><!-- /matrixUploadRow -->
+  </div><!-- /pane-preview -->
   <div id="pane-gen" class="side-panel">
     <div class="panel-inner">
       <div class="card">
         <div class="card-label">Texture</div>
         <div id="profileChips"></div>
+        <div id="profileCsel"></div>
         <div id="tintRow">
           <label id="tintSwatch"><div id="tintBox" style="background:#1c1c1e"></div><input type="color" id="tintPick" value="#22c55e"></label>
           <span id="tintStatus">Colour tint</span>
@@ -245,13 +270,7 @@ details.hs .hs-body strong{color:#d4ccc0}
       </div>
       <div class="card">
         <div class="card-label">Tile Context</div>
-        <select class="pane-select" id="selectContext">
-          <option value="standalone">Standalone</option>
-          <option value="contained">Contained forms</option>
-          <option value="path_edge">Path / border edge</option>
-          <option value="coastline">Coastline</option>
-          <option value="sprite_form">Sprite shape (oval)</option>
-        </select>
+        <div id="contextCsel"></div>
       </div>
     </div>
     <div id="bake-footer"><button id="btnBake">⚡  Bake</button></div>
@@ -455,31 +474,85 @@ function sampleCustomEdge(grid,side,x,y,dist){if(!grid)return null;const W=S.W,H
 function applyEdgeTheme(baseColor,neighborColor,dist,along,alongLen,theme,blendDist,lx,ly,seed){if(dist>=blendDist||!neighborColor)return baseColor;const ss=t=>t*t*(3-2*t);if(theme==="gradient")return blendHex(baseColor,neighborColor,ss(1-dist/blendDist));if(theme==="rocky"){const rSc=Math.max(2,blendDist*0.8),rn=tFrac(lx,ly,S.W,S.H,rSc,seed+777);if(rn>0.25+(dist/blendDist)*0.65)return adj(neighborColor,(tNoise(lx,ly,S.W,S.H,rSc*0.4,seed+888)-0.5)*20);return baseColor;}if(theme==="scalloped"){const R=Math.max(2,blendDist);const si=Math.round((along-R)/(2*R));const Ri=R*(0.78+pseudo(Math.max(0,si),1,seed+555)*0.38);const ph=(along%(2*R)+2*R)%(2*R);const hc=Math.min(ph,2*R-ph);const dSq=hc*hc+dist*dist;if(dSq<Ri*Ri)return neighborColor;if(dSq<(Ri+1.8)*(Ri+1.8))return adj(baseColor,-30);return baseColor;}if(theme==="curb"){const BRICK="#525262",MORTAR="#28283a";const d=Math.min(blendDist,5);if(dist>=d)return baseColor;if(dist===0||dist===d-1)return MORTAR;const row=dist-1,bW=Math.max(2,Math.floor(alongLen/8));return(along+(row%2)*Math.floor(bW/2))%(bW+1)===bW?MORTAR:BRICK;}if(theme==="organic"){const threshold=dist/blendDist;const noise=tFrac(lx,ly,S.W,S.H,3,seed+420);return noise>threshold?neighborColor:baseColor;}return baseColor;}
 function genTile(profName,dens,con,freq,style,context,blendDist,blendTheme,edgeBlend,seed){const W=S.W,H=S.H,newGrid=makeGrid(W,H);S._containedMargin=(context==="contained"&&blendDist>0)?blendDist:0;for(let y=0;y<H;y++){for(let x=0;x<W;x++){if(context==="sprite_form"){const cx=W/2,cy=H*0.45,rx=W*0.38,ry=H*0.46;if(((x-cx)/rx)**2+((y-cy)/ry)**2+(tNoise(x,y,W,H,3,seed+500)-0.5)*0.18>1){newGrid[y][x]=null;continue;}}if(blendTheme==="organic"&&edgeBlend&&blendDist>0&&context!=="contained"){const oChecks=[{name:edgeBlend.t,key:"t",dist:y,bNoise:tFrac(x,0,W,H,2.5,seed+424)},{name:edgeBlend.b,key:"b",dist:H-1-y,bNoise:tFrac(x,0,W,H,2.5,seed+425)},{name:edgeBlend.l,key:"l",dist:x,bNoise:tFrac(0,y,W,H,2.5,seed+422)},{name:edgeBlend.r,key:"r",dist:W-1-x,bNoise:tFrac(0,y,W,H,2.5,seed+423)}];let claimed=null;for(const{name,key,dist,bNoise}of oChecks){if(!name)continue;const boundary=bNoise*blendDist;if(dist<boundary){if(name==="custom"){claimed=sampleCustomEdge(S.matCustomGrids[key],key,x,y,dist);}else{const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);claimed=fullColor(name,nn,np.dens,np.con,x,y,seed);}break;}}if(claimed!==null){newGrid[y][x]=claimed;continue;}}let n;if(style==="grainy")n=tNoise(x,y,W,H,1,seed);else if(style==="organic")n=tFrac(x,y,W,H,freq*3+1,seed);else n=tNoise(x,y,W,H,freq*6+2,seed)*0.75+tNoise(x,y,W,H,freq*3+1,seed+200)*0.25;let color=fullColor(profName,n,dens,con,x,y,seed);if(edgeBlend&&blendDist>0&&blendTheme!=="organic"){const edges=[{key:"t",name:edgeBlend.t,dist:y,along:x,len:W,side:"t"},{key:"b",name:edgeBlend.b,dist:H-1-y,along:x,len:W,side:"b"},{key:"l",name:edgeBlend.l,dist:x,along:y,len:H,side:"l"},{key:"r",name:edgeBlend.r,dist:W-1-x,along:y,len:H,side:"r"}];for(const{key,name,dist,along,len,side}of edges){if(!name||dist>=blendDist)continue;let nc;if(name==="custom"){nc=sampleCustomEdge(S.matCustomGrids[key],side,x,y,dist);}else{const np=PROFILES[name];nc=fullColor(name,n,np.dens,np.con,x,y,seed);}if(nc)color=applyEdgeTheme(color,nc,dist,along,len,blendTheme,blendDist,x,y,seed);}}if(context==="path_edge"){const ed=Math.min(x,y,W-1-x,H-1-y);if(ed<3)color=PROFILES[profName].palette[0];}else if(context==="coastline"){const ed=Math.min(x,y,W-1-x,H-1-y);if(ed<4&&pseudo(x,y,seed+9)<(1-ed/4)*0.7)color=PROFILES[profName].palette[0];}if(blendTheme==="organic"&&edgeBlend&&blendDist>0&&color){if(context==="contained"){const R_sc=W/(S.shingleRows||4)*0.46;const extDist=blendDist+Math.ceil(R_sc)+1;const cEdges=[{name:edgeBlend.t,key:"t",dist:y},{name:edgeBlend.b,key:"b",dist:H-1-y},{name:edgeBlend.l,key:"l",dist:x},{name:edgeBlend.r,key:"r",dist:W-1-x}].sort((a,b2)=>a.dist-b2.dist);for(const{name,key,dist}of cEdges){if(!name||dist>=extDist)break;if(S._shingleType!=="body"){if(name==="custom"){const sc=sampleCustomEdge(S.matCustomGrids[key],key,x,y,dist);if(sc)color=sc;}else{const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);color=fullColor(name,nn,np.dens,np.con,x,y,seed);}}break;}}else{const extW=3;const pEdges=[{name:edgeBlend.t,key:"t",dist:y,bn:tFrac(x,0,W,H,2.5,seed+424)},{name:edgeBlend.b,key:"b",dist:H-1-y,bn:tFrac(x,0,W,H,2.5,seed+425)},{name:edgeBlend.l,key:"l",dist:x,bn:tFrac(0,y,W,H,2.5,seed+422)},{name:edgeBlend.r,key:"r",dist:W-1-x,bn:tFrac(0,y,W,H,2.5,seed+423)}];for(const{name,key,dist,bn}of pEdges){if(!name)continue;const boundary=bn*blendDist;if(dist>=boundary&&dist<boundary+extW){const isGap=profName==="mountain"?(S._shingleType!=="body"):false;if(isGap){const np=PROFILES[name];const nn=np.style==="grainy"?tNoise(x,y,W,H,1,seed):tFrac(x,y,W,H,np.freq*3+1,seed);color=fullColor(name,nn,np.dens,np.con,x,y,seed);}else{const t=1-(dist-boundary)/extW;color=adj(color,-Math.round(28*t));}break;}}}}newGrid[y][x]=color;}}return newGrid;}
 function bakeMatrix(){S.noiseSeed=Math.random()*1000;_bakeWithSeed(S.noiseSeed);}
-function _bakeWithSeed(seed){const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=document.getElementById("selectContext").value;const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const hasBlend=eb.t||eb.b||eb.l||eb.r;const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,hasBlend?eb:null,seed);renderMatCell("c",cg);["tl","t","tr","l","r","bl","b","br"].forEach(key=>{if(S.matCustomGrids[key]){renderMatCell(key,S.matCustomGrids[key]);return;}const name=mn[key],p=PROFILES[name];renderMatCell(key,genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,seed));});S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
-function rebakeCenter(){const seed=S.noiseSeed;const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=document.getElementById("selectContext").value;const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,eb.t||eb.b||eb.l||eb.r?eb:null,seed);renderMatCell("c",cg);S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
+function _bakeWithSeed(seed){const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=contextCSel?contextCSel.value:'standalone';const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const hasBlend=eb.t||eb.b||eb.l||eb.r;const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,hasBlend?eb:null,seed);renderMatCell("c",cg);["tl","t","tr","l","r","bl","b","br"].forEach(key=>{if(S.matCustomGrids[key]){renderMatCell(key,S.matCustomGrids[key]);return;}const name=mn[key],p=PROFILES[name];renderMatCell(key,genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,seed));});S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
+function rebakeCenter(){const seed=S.noiseSeed;const dens=parseInt(document.getElementById("slideDensity").value);const con=parseInt(document.getElementById("slideContrast").value);const freq=parseInt(document.getElementById("slideFreq").value);const bd=parseInt(document.getElementById("slideBlend").value);const ctx2=contextCSel?contextCSel.value:'standalone';const cn=S.centerName,mn=S.matNames;const eb={t:mn.t!==cn?mn.t:null,b:mn.b!==cn?mn.b:null,l:mn.l!==cn?mn.l:null,r:mn.r!==cn?mn.r:null};if(S.matCustomGrids.t)eb.t="custom";if(S.matCustomGrids.b)eb.b="custom";if(S.matCustomGrids.l)eb.l="custom";if(S.matCustomGrids.r)eb.r="custom";const cg=genTile(cn,dens,con,freq,S.style,ctx2,bd,S.blendTheme,eb.t||eb.b||eb.l||eb.r?eb:null,seed);renderMatCell("c",cg);S.history.push(copyGrid(S.grid||makeGrid(S.W,S.H)));if(S.history.length>50)S.history.shift();S.redos=[];S.grid=cg;paintCanvas();updateHistoryBtns();}
 function renderMatCell(key,grid){const cell=document.querySelector(`.mcell[data-key="${key}"]`);if(!cell||!grid)return;let canvas=cell.querySelector("canvas");if(!canvas){canvas=document.createElement("canvas");cell.insertBefore(canvas,cell.firstChild);}canvas.width=S.W;canvas.height=S.H;const c=canvas.getContext("2d");for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){c.fillStyle=grid[y][x]||((x+y)%2===0?"#252525":"#3a3a3a");c.fillRect(x,y,1,1);}const cw=cell.offsetWidth;if(cw>0)canvas.style.height=(cw*(S.H/S.W))+"px";}
 function updateMatLabel(key,name){const cell=document.querySelector(`.mcell[data-key="${key}"]`);if(!cell)return;const pos={tl:"top-left",t:"top",tr:"top-right",l:"left",r:"right",bl:"btm-left",b:"bottom",br:"btm-right"};cell.setAttribute("data-label",key==="c"?`center · ${S.centerName}`:`${pos[key]||key} · ${name}`);}
 function loadCustomTexture(key){const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.onchange=e=>{const file=e.target.files[0];if(!file)return;const img=new Image();img.onload=()=>{const offscreen=document.createElement("canvas");offscreen.width=S.W;offscreen.height=S.H;const c=offscreen.getContext("2d");c.drawImage(img,0,0,S.W,S.H);const id=c.getImageData(0,0,S.W,S.H);const grid=makeGrid(S.W,S.H);for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){const i=(y*S.W+x)*4;grid[y][x]=id.data[i+3]>0?rgbToHex(id.data[i],id.data[i+1],id.data[i+2]):null;}S.matCustomGrids[key]=grid;S.matNames[key]="custom";updateMatLabel(key,"custom");renderMatCell(key,grid);updateUploadRow();rebakeCenter();};img.src=URL.createObjectURL(file);};inp.click();}
 const POSNAMES={tl:"top-left",t:"top",tr:"top-right",l:"left",r:"right",bl:"btm-left",b:"bottom",br:"btm-right"};
 function updateUploadRow(){const key=S.selectedNeighbor;const row=document.getElementById("matrixUploadRow");const clearBtn=document.getElementById("btnClearNeighbor");if(!key){row.classList.remove("show");return;}row.classList.add("show");clearBtn.style.display=S.matCustomGrids[key]?"":"none";}
 function selectNeighbor(key){if(key==="c")return;if(S.selectedNeighbor===key){S.selectedNeighbor=null;document.querySelectorAll(".mcell").forEach(el=>el.classList.remove("selected"));document.getElementById("matrixMsg").textContent="Tap a surrounding tile to select it, then assign a texture or upload a PNG";document.getElementById("matrixMsg").classList.remove("hot");updateUploadRow();}else{S.selectedNeighbor=key;document.querySelectorAll(".mcell").forEach(el=>el.classList.toggle("selected",el.dataset.key===key));document.getElementById("matrixMsg").textContent=`${POSNAMES[key]} (${S.matNames[key]}) selected`;document.getElementById("matrixMsg").classList.add("hot");updateUploadRow();}}
-function applyProfile(name){const p=PROFILES[name];if(!p)return;if(S.selectedNeighbor){S.matNames[S.selectedNeighbor]=name;S.matCustomGrids[S.selectedNeighbor]=null;updateMatLabel(S.selectedNeighbor,name);updateUploadRow();const pg=genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,S.noiseSeed);renderMatCell(S.selectedNeighbor,pg);rebakeCenter();document.getElementById("matrixMsg").textContent=`${POSNAMES[S.selectedNeighbor]} → ${name}`;}else{S.centerName=name;updateMatLabel("c",name);document.getElementById("hdr-profile").textContent=name;document.getElementById("slideDensity").value=p.dens;document.getElementById("densityVal").textContent=p.dens;document.getElementById("slideContrast").value=p.con;document.getElementById("contrastVal").textContent=p.con;document.getElementById("slideFreq").value=p.freq;document.getElementById("freqVal").textContent=p.freq;document.getElementById("selectContext").value=p.ctx;S.style=p.style||"organic";document.querySelectorAll("#styleRow button").forEach(b=>b.classList.toggle("on",b.dataset.s===S.style));bakeMatrix();}document.querySelectorAll(".pchip").forEach(c=>{const active=S.selectedNeighbor?S.matNames[S.selectedNeighbor]===c.dataset.p:S.centerName===c.dataset.p;c.classList.toggle("on",active);});}
+function applyProfile(name){const p=PROFILES[name];if(!p)return;if(S.selectedNeighbor){S.matNames[S.selectedNeighbor]=name;S.matCustomGrids[S.selectedNeighbor]=null;updateMatLabel(S.selectedNeighbor,name);updateUploadRow();const pg=genTile(name,p.dens,p.con,p.freq,p.style||"organic","standalone",0,S.blendTheme,null,S.noiseSeed);renderMatCell(S.selectedNeighbor,pg);rebakeCenter();document.getElementById("matrixMsg").textContent=`${POSNAMES[S.selectedNeighbor]} → ${name}`;// Reset select to center (neighbour changed, not center)
+const sel=document.getElementById("profileSelect");if(sel)sel.value=S.centerName;if(profileCSel)profileCSel.set(S.centerName);}else{S.centerName=name;updateMatLabel("c",name);document.getElementById("hdr-profile").textContent=name;document.getElementById("slideDensity").value=p.dens;document.getElementById("densityVal").textContent=p.dens;document.getElementById("slideContrast").value=p.con;document.getElementById("contrastVal").textContent=p.con;document.getElementById("slideFreq").value=p.freq;document.getElementById("freqVal").textContent=p.freq;if(contextCSel)contextCSel.set(p.ctx);S.style=p.style||"organic";document.querySelectorAll("#styleRow button").forEach(b=>b.classList.toggle("on",b.dataset.s===S.style));const sel=document.getElementById("profileSelect");if(sel)sel.value=name;if(profileCSel)profileCSel.set(name);bakeMatrix();}document.querySelectorAll(".pchip").forEach(c=>{const active=S.selectedNeighbor?S.matNames[S.selectedNeighbor]===c.dataset.p:S.centerName===c.dataset.p;c.classList.toggle("on",active);});}
 function exportPNG(){const out=document.createElement("canvas");out.width=S.W;out.height=S.H;const c=out.getContext("2d");for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++)if(S.grid[y][x]){c.fillStyle=S.grid[y][x];c.fillRect(x,y,1,1);}out.toBlob(blob=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sprite_"+S.W+"x"+S.H+".png";a.click();},"image/png");}
 function updateColorUI(){document.getElementById("swatch").style.background=S.transp?TRANSPBG:S.color;if(!S.transp)document.getElementById("colorPick").value=S.color;document.getElementById("btnTransp").classList.toggle("on",S.transp);document.querySelectorAll(".sw").forEach(el=>el.classList.toggle("on",!S.transp&&el.dataset.c===S.color));}
 function setTool(t){S.tool=t;document.querySelectorAll("#toolRow button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));}
 function changePreset(val){const[w,h]=val.split(",").map(Number);S.W=w;S.H=h;S.grid=makeGrid(w,h);S.history=[];S.redos=[];S.zoom=calcZoom();bakeMatrix();}
 function buildProfileChips(){const w=document.getElementById("profileChips");PNAMES.forEach(name=>{const sp=document.createElement("span");sp.className="pchip"+(name==="grass"?" on":"");sp.textContent=name;sp.dataset.p=name;sp.addEventListener("click",()=>applyProfile(name));w.appendChild(sp);});}
+let profileCSel=null,contextCSel=null;
+class CustomSelect{
+  constructor(el,opts,val,cb){this.el=el;this.opts=opts;this.value=val;this.cb=cb;this.el.className='csel';this._build();}
+  _build(){
+    this.el.innerHTML=`<button class="csel-btn"><span class="csel-val">${this._label(this.value)}</span><span class="csel-arr">▾</span></button><div class="csel-menu"><div class="csel-inner">${this.opts.map(o=>`<div class="csel-opt${o.v===this.value?' on':''}" data-v="${o.v}">${o.l}</div>`).join('')}</div></div>`;
+    this.el.querySelector('.csel-btn').addEventListener('click',e=>{e.stopPropagation();const was=this.el.classList.contains('open');document.querySelectorAll('.csel.open').forEach(x=>x.classList.remove('open'));if(!was)this.el.classList.add('open');});
+    this.el.querySelector('.csel-inner').addEventListener('click',e=>{const o=e.target.closest('.csel-opt');if(!o)return;this.set(o.dataset.v);this.el.classList.remove('open');this.cb(o.dataset.v);});
+  }
+  _label(v){return(this.opts.find(o=>o.v===v)||{l:v}).l;}
+  set(v){this.value=v;const vEl=this.el.querySelector('.csel-val');if(vEl)vEl.textContent=this._label(v);this.el.querySelectorAll('.csel-opt').forEach(o=>o.classList.toggle('on',o.dataset.v===v));}
+}
+function buildProfileSelect(){
+  profileCSel=new CustomSelect(document.getElementById('profileCsel'),PNAMES.map(n=>({v:n,l:n})),S.centerName,name=>applyProfile(name));
+}
+function buildContextSelect(){
+  const opts=[{v:'standalone',l:'Standalone'},{v:'contained',l:'Contained forms'},{v:'path_edge',l:'Path / border edge'},{v:'coastline',l:'Coastline'},{v:'sprite_form',l:'Sprite shape (oval)'}];
+  contextCSel=new CustomSelect(document.getElementById('contextCsel'),opts,'standalone',()=>{});
+}
 function buildPalette(){const pal=document.getElementById("palette");DRAW_PALETTE.forEach(c=>{const d=document.createElement("div");d.className="sw";d.dataset.c=c;d.style.background=c;d.addEventListener("click",()=>{S.color=c;S.transp=false;updateColorUI();});pal.appendChild(d);});}
 
 // ── Desktop hover ─────────────────────────────────────────────────────────────
 function initDesktopHover(){
   const genPane=document.getElementById("pane-gen");
   const editPane=document.getElementById("pane-edit");
-  let gT,eT;
+  let gT,eT,genPinned=false,editPinned=false;
+
+  // Header buttons toggle panels (click to pin/unpin)
+  document.getElementById("hdrBtnGen").addEventListener("click",()=>{
+    genPinned=!genPinned;
+    document.getElementById("hdrBtnGen").classList.toggle("active",genPinned);
+    document.getElementById("tab-gen").style.color=genPinned?"#c49a68":"";
+    if(genPinned){clearTimeout(gT);genPane.classList.add("open");}
+    else genPane.classList.remove("open");
+  });
+  document.getElementById("hdrBtnEdit").addEventListener("click",()=>{
+    editPinned=!editPinned;
+    document.getElementById("hdrBtnEdit").classList.toggle("active",editPinned);
+    document.getElementById("tab-edit").style.color=editPinned?"#c49a68":"";
+    if(editPinned){clearTimeout(eT);editPane.classList.add("open");S.zoom=calcZoom();paintCanvas();}
+    else editPane.classList.remove("open");
+  });
+  document.getElementById("tab-gen").addEventListener("click",()=>{
+    genPinned=!genPinned;
+    document.getElementById("tab-gen").style.color=genPinned?"#c49a68":"";
+    if(genPinned){clearTimeout(gT);genPane.classList.add("open");}
+    else{genPane.classList.remove("open");}
+  });
+  document.getElementById("tab-edit").addEventListener("click",()=>{
+    editPinned=!editPinned;
+    document.getElementById("tab-edit").style.color=editPinned?"#c49a68":"";
+    if(editPinned){clearTimeout(eT);editPane.classList.add("open");S.zoom=calcZoom();paintCanvas();}
+    else{editPane.classList.remove("open");}
+  });
+  // Click outside an unpinned panel closes it
+  document.getElementById("main").addEventListener("click",e=>{
+    if(!genPinned&&!genPane.contains(e.target)&&e.target!==document.getElementById("tab-gen"))genPane.classList.remove("open");
+    if(!editPinned&&!editPane.contains(e.target)&&e.target!==document.getElementById("tab-edit"))editPane.classList.remove("open");
+  });
+
+  // Hover still works for quick access without pinning
   const og=()=>{clearTimeout(gT);genPane.classList.add("open");};
-  const cg=()=>{gT=setTimeout(()=>genPane.classList.remove("open"),180);};
+  const cg=()=>{if(!genPinned)gT=setTimeout(()=>genPane.classList.remove("open"),220);};
   const oe=()=>{clearTimeout(eT);editPane.classList.add("open");S.zoom=calcZoom();paintCanvas();};
-  const ce=()=>{eT=setTimeout(()=>editPane.classList.remove("open"),180);};
+  const ce=()=>{if(!editPinned)eT=setTimeout(()=>editPane.classList.remove("open"),220);};
   [document.getElementById("tab-gen"),genPane].forEach(el=>{el.addEventListener("mouseenter",og);el.addEventListener("mouseleave",cg);});
   [document.getElementById("tab-edit"),editPane].forEach(el=>{el.addEventListener("mouseenter",oe);el.addEventListener("mouseleave",ce);});
 }
@@ -500,6 +573,8 @@ function initMobileSwipe(){
   main.addEventListener("touchmove",e=>{moved=true;},{passive:true});
   main.addEventListener("touchend",e=>{
     if(!moved)return;
+    // Don't switch panels if the swipe started on an element that needs its own horizontal interaction
+    if(e.target.closest("#profileChips,input,#cv,select,#palette"))return;
     const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
     if(Math.abs(dx)<Math.abs(dy)*1.5||Math.abs(dx)<30)return;
     const idx=MOB_ORDER.indexOf(mobCurrent);
@@ -603,11 +678,9 @@ function checkWelcome(){
   }
 }
 
-function isMobile(){return window.innerWidth<600;}
-
 function init(){
   S.grid=makeGrid(S.W,S.H);S.zoom=calcZoom();
-  buildProfileChips();buildPalette();updateColorUI();updateHistoryBtns();
+  buildProfileChips();buildProfileSelect();buildContextSelect();buildPalette();updateColorUI();updateHistoryBtns();
   document.querySelectorAll(".mcell").forEach(el=>el.addEventListener("click",()=>selectNeighbor(el.dataset.key)));
 
   if(isMobile())initMobileSwipe();else initDesktopHover();
@@ -623,6 +696,7 @@ function init(){
   cv.addEventListener("touchmove",e=>{e.preventDefault();const t=e.touches[0];drag(...Object.values(getCell(t.clientX,t.clientY)));},{passive:false});
   cv.addEventListener("touchend",e=>{e.preventDefault();endDraw();},{passive:false});
 
+  document.addEventListener('click',()=>document.querySelectorAll('.csel.open').forEach(x=>x.classList.remove('open')));
   document.getElementById("preset").addEventListener("change",e=>changePreset(e.target.value));
   document.getElementById("btnExport").addEventListener("click",exportPNG);
   document.getElementById("btnBake").addEventListener("click",bakeMatrix);
